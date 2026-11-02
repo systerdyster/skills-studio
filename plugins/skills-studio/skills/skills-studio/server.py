@@ -25,7 +25,8 @@ from urllib.parse import parse_qs, urlparse
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "bin"))
 
-from sx import graph  # noqa: E402
+from sx import graph, insights  # noqa: E402
+from sx.insights import InsightsError  # noqa: E402
 from sx import usage as skill_usage  # noqa: E402
 from sx.state import StudioPaths, running  # noqa: E402
 from sx.tasks import TaskError, in_flight, submit  # noqa: E402
@@ -99,8 +100,6 @@ def make_handler(project, home, token, port, usage):
                     if skill["id"] == wanted:
                         return self._json(200, skill)
                 return self._json(404, {"error": f"no skill {wanted!r}"})
-            if url.path == "/analysis":
-                return self._json(200, _latest_analysis(paths))
             if url.path == "/usage":
                 return self._json(200, _usage_view(usage, current_graph()["skills"]))
             if url.path == "/tasks":
@@ -115,7 +114,7 @@ def make_handler(project, home, token, port, usage):
             if origin and urlparse(origin).netloc not in allowed_hosts:
                 return self._json(403, {"error": "cross-origin request refused"})
             route = urlparse(self.path).path
-            if route not in ("/task", "/close", "/usage"):
+            if route not in ("/task", "/close", "/usage", "/dismiss", "/restore"):
                 return self._json(404, {"error": "not found"})
             if not (self.headers.get("Content-Type") or "").startswith("application/json"):
                 return self._json(415, {"error": "expected application/json"})
@@ -129,10 +128,18 @@ def make_handler(project, home, token, port, usage):
                 if route == "/usage":
                     usage.refresh()
                     return self._json(202, _usage_view(usage, current_graph()["skills"]))
+                if route == "/dismiss":
+                    insights.dismiss(paths, raw, graph.texts(current_graph(fresh=True)["skills"]))
+                    current_graph(fresh=True)
+                    return self._json(200, {"dismissed": True})
+                if route == "/restore":
+                    insights.restore(paths, raw)
+                    current_graph(fresh=True)
+                    return self._json(200, {"restored": True})
                 task = submit(paths, raw, current_graph(fresh=True)["skills"])
             except json.JSONDecodeError:
                 return self._json(400, {"error": "invalid JSON"})
-            except TaskError as e:
+            except (TaskError, InsightsError) as e:
                 return self._json(400, {"error": str(e)})
             return self._json(202, task)
 
@@ -157,16 +164,6 @@ def _usage_view(usage, skills):
     state = usage.state()
     return {"status": state["status"], "fetched_at": state["fetched_at"], "error": state["error"],
             "skills": skill_usage.match(state["rows"], skills)}
-
-
-def _latest_analysis(paths):
-    found = sorted(paths.analysis.glob("*.json")) if paths.analysis.is_dir() else []
-    for path in reversed(found):
-        try:
-            return json.loads(path.read_text())
-        except ValueError:
-            continue
-    return {"suggestions": []}
 
 
 def serve(project, home, port=0, token=None, usage=None):

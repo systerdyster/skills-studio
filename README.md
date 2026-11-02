@@ -63,6 +63,10 @@ skill they concern. Each is kept with a fingerprint of every skill involved, so 
 itself once one of those texts changes — a fixed problem never lingers. Analyse never fixes anything;
 the findings and suggestions are for you.
 
+**Dismiss** sets one aside when you don't want the change. It stays dismissed — also when Analyse
+runs again — until one of its skills' texts changes, and then it may be suggested anew. The dock's
+head shows how many are dismissed; open them there to **Restore** one.
+
 ## Changing skills
 
 The studio only ever writes the project's own skills (`.claude/skills/`). User, synced and plugin

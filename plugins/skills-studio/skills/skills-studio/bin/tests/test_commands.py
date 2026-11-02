@@ -8,6 +8,9 @@ from contextlib import redirect_stdout
 from pathlib import Path
 
 import studio
+from sx import insights
+from sx.graph import texts
+from sx.scan import scan
 from sx.state import StudioPaths
 
 
@@ -124,7 +127,17 @@ class CommandTest(unittest.TestCase):
         self.assertIn("analyse-badly-written", {f["check"] for f in checked["findings"]})
         skill = self.project / ".claude" / "skills" / "git-finish" / "SKILL.md"
         skill.write_text(skill.read_text() + "Fixed.\n")
-        self.assertEqual(self.run_cli("insights", "show")[1], {"insights": []})
+        self.assertEqual(self.run_cli("insights", "show")[1], {"insights": [], "dismissed": []})
+
+    def test_insights_show_lists_what_the_developer_dismissed_apart(self):
+        found = Path(self.tmp.name) / "insights.json"
+        found.write_text(json.dumps([{"kind": "badly-written", "skills": ["git-finish"], "message": "Says merge twice."}]))
+        self.run_cli("insights", "save", str(found))
+        paths = StudioPaths(self.project)
+        insights.dismiss(paths, {"kind": "badly-written", "skills": ["git-finish"]},
+                         texts(scan(self.project, self.home)))
+        _, shown = self.run_cli("insights", "show")
+        self.assertEqual((shown["insights"], [i["kind"] for i in shown["dismissed"]]), ([], ["badly-written"]))
 
     def test_insights_save_refuses_an_unknown_kind(self):
         found = Path(self.tmp.name) / "insights.json"

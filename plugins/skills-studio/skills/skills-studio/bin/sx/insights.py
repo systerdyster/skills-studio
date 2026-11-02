@@ -86,6 +86,54 @@ def save(paths, raw, skills, texts):
     return kept
 
 
+def dismissals(paths):
+    """The dismissals on file; an entry not in the shape dismiss() writes is ignored."""
+    return [d for d in _read_list(paths.dismissed) if _is_named(d) and isinstance(d.get("fingerprints"), dict)]
+
+
+def dismiss(paths, raw, texts):
+    """Sets aside the item that holds now with this kind and these skills, for as long as their texts
+    stay as they are. Dismissals whose texts have changed since are dropped on the way."""
+    wanted = _named(raw)
+    if not any(_named(item) == wanted for item in live(read(paths), texts)):
+        raise InsightsError(f"no such finding or suggestion holds now: {wanted[0]} on {', '.join(sorted(wanted[1]))}")
+    kept = [d for d in live(dismissals(paths), texts) if _named(d) != wanted]
+    kept.append({"kind": wanted[0], "skills": sorted(wanted[1]),
+                 "fingerprints": {s: fingerprint(texts[s]) for s in wanted[1]}})
+    _write(paths, paths.dismissed, kept)
+
+
+def restore(paths, raw):
+    wanted = _named(raw)
+    _write(paths, paths.dismissed, [d for d in dismissals(paths) if _named(d) != wanted])
+
+
+def partition(items, dismissed):
+    """The items still shown, and those set aside: dismissed on the same texts they were made on."""
+    marks = {(_named(d), _frozen(d)) for d in dismissed}
+    shown = [i for i in items if (_named(i), _frozen(i)) not in marks]
+    return shown, [i for i in items if (_named(i), _frozen(i)) in marks]
+
+
+def _named(item):
+    """An item's kind and the set of its skills: what a dismissal is matched on."""
+    if not isinstance(item, dict) or item.get("kind") not in KINDS:
+        raise InsightsError(f"kind must be one of {', '.join(KINDS)}")
+    if not _is_named(item):
+        raise InsightsError("skills: a list of the skill ids it concerns")
+    return item["kind"], frozenset(item["skills"])
+
+
+def _is_named(item):
+    skills = item.get("skills") if isinstance(item, dict) else None
+    return (item.get("kind") in KINDS and isinstance(skills, list) and bool(skills)
+            and all(isinstance(s, str) for s in skills))
+
+
+def _frozen(item):
+    return frozenset((item.get("fingerprints") or {}).items())
+
+
 def _write(paths, target, data):
     paths.ensure()
     handle, partial = tempfile.mkstemp(dir=paths.root, prefix=f".{target.stem}-", suffix=".partial")

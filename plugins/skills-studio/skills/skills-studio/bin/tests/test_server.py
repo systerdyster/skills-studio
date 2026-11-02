@@ -12,6 +12,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import server  # noqa: E402
+from sx import graph, insights  # noqa: E402
+from sx.scan import scan  # noqa: E402
+from sx.state import StudioPaths  # noqa: E402
 from sx.usage import Usage  # noqa: E402
 
 USAGE_REPORT = """
@@ -143,8 +146,30 @@ class ServerTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual([(t["id"], t["state"]) for t in listed["tasks"]], [(task["id"], "waiting")])
 
-    def test_analysis_is_empty_before_any(self):
-        self.assertEqual(self.request("GET", "/analysis"), (200, {"suggestions": []}))
+    def save_split(self):
+        skills = scan(self.project, self.home)
+        insights.save(StudioPaths(self.project), [{
+            "kind": "split", "skills": ["close-feature"], "message": "The git handling is a job of its own.",
+            "proposal": {"skill": "close-feature", "text": "Extract the git handling."}}], skills, graph.texts(skills))
+
+    def test_dismissing_moves_an_item_aside_and_restoring_brings_it_back(self):
+        self.save_split()
+        item = {"kind": "split", "skills": ["close-feature"]}
+        self.assertEqual(self.request("POST", "/dismiss", item)[0], 200)
+        shown = self.request("GET", "/graph")[1]
+        self.assertEqual(([i["kind"] for i in shown["insights"]], [i["kind"] for i in shown["dismissed"]]), ([], ["split"]))
+        self.assertNotIn("analyse-split", {f["check"] for f in shown["findings"]})
+        self.assertEqual(self.request("POST", "/restore", item)[0], 200)
+        self.assertEqual([i["kind"] for i in self.request("GET", "/graph")[1]["insights"]], ["split"])
+
+    def test_dismissing_what_is_not_there_is_refused(self):
+        status, reply = self.request("POST", "/dismiss", {"kind": "split", "skills": ["git-finish"]})
+        self.assertEqual(status, 400)
+        self.assertIn("no such", reply["error"])
+
+    def test_dismiss_needs_the_token(self):
+        self.save_split()
+        self.assertEqual(self.request("POST", "/dismiss", {"kind": "split", "skills": ["close-feature"]}, token=False)[0], 403)
 
 
 if __name__ == "__main__":

@@ -157,7 +157,11 @@ button.busy::before { content: ""; display: inline-block; width: 10px; height: 1
 .insight.split .kind, .insight.merge .kind, .insight.tighten .kind, .insight.reuse .kind { color: var(--accent); }
 .insight .who { white-space: nowrap; }
 .insight .ask { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; }
+.insight .actions { display: flex; gap: 6px; justify-content: flex-end; }
 .insight button { font-size: 12px; padding: 2px 10px; white-space: nowrap; }
+.insight.dismissed { opacity: .6; }
+.insights-head .link { border: none; background: none; padding: 0 4px; font-size: 12px; color: var(--accent);
+                       text-decoration: underline dotted; }
 @media (max-width: 900px) { .insight { grid-template-columns: 1fr; } }
 #cards > .card { break-inside: avoid; margin-bottom: 14px; }
 #empty { color: var(--muted); text-align: center; padding: 48px 24px; column-span: all; }
@@ -237,7 +241,8 @@ const TOKEN = new URLSearchParams(location.search).get("token") || "";
 const SOURCES = ["project", "user", "synced", "plugin"];
 const POLL_MS = 4000;
 
-const state = { graph: null, tasks: [], usage: { status: "idle", skills: {} }, signature: "", tab: "project", selected: null, editing: null };
+const state = { graph: null, tasks: [], usage: { status: "idle", skills: {} }, signature: "", tab: "project", selected: null, editing: null,
+  showDismissed: false };
 const $ = (id) => document.getElementById(id);
 
 async function api(path, body) {
@@ -302,7 +307,8 @@ const pendingFrom = (id) => state.tasks.filter((t) => (t.kind === "link" || t.ki
 
 function signature(graph) {
   return JSON.stringify([graph.skills.map((s) => [s.id, s.modified]), graph.wires.map((w) => [w.from, w.to, w.broken, w.kind]),
-    (graph.insights || []).map((i) => [i.kind, i.skills, i.message, i.proposal])]);
+    (graph.insights || []).map((i) => [i.kind, i.skills, i.message, i.proposal]),
+    (graph.dismissed || []).map((i) => [i.kind, i.skills])]);
 }
 
 // ---- cards ---------------------------------------------------------------------------------
@@ -382,14 +388,17 @@ const SUGGESTION_KINDS = new Set(["split", "merge", "tighten", "reuse"]);
 
 // Analyse's findings and suggestions, docked at the foot of the window: what only a reading could
 // tell, worst first. Each names its skills; clicking one opens it. One that carries a proposal can be
-// sent to Claude as a change task. The dock folds to one line, and remembers that per viewer.
+// sent to Claude as a change task; any can be dismissed, and stays dismissed until one of its skills'
+// texts changes. The dock folds to one line, and remembers that per viewer.
 // A finding leaves by itself once any of its skills' text changes.
 const DOCK_KEY = "skills-studio:dock-collapsed";
 const dockCollapsed = () => { try { return localStorage.getItem(DOCK_KEY) === "1"; } catch { return false; } };
+const byKind = (list) => [...(list || [])].sort((a, b) => INSIGHT_ORDER.indexOf(a.kind) - INSIGHT_ORDER.indexOf(b.kind));
 
 function insightStrip() {
-  const items = [...(state.graph.insights || [])].sort((a, b) => INSIGHT_ORDER.indexOf(a.kind) - INSIGHT_ORDER.indexOf(b.kind));
-  if (!items.length) return null;
+  const items = byKind(state.graph.insights);
+  const dismissed = byKind(state.graph.dismissed);
+  if (!items.length && !dismissed.length) return null;
   const box = el("section", { class: `insights${dockCollapsed() ? " collapsed" : ""}`, "aria-label": "Findings from Analyse" });
   const toggle = el("button", { class: "toggle", "aria-expanded": String(!dockCollapsed()) }, dockCollapsed() ? "▴ Show" : "▾ Hide");
   const flip = () => {
@@ -398,25 +407,46 @@ function insightStrip() {
     toggle.textContent = collapsed ? "▴ Show" : "▾ Hide";
     toggle.setAttribute("aria-expanded", String(!collapsed));
   };
+  const showAside = dismissed.length ? el("button", { class: "link", "aria-pressed": String(state.showDismissed),
+    onclick: (event) => { event.stopPropagation(); state.showDismissed = !state.showDismissed; drawCards(); } },
+    `${dismissed.length} dismissed · ${state.showDismissed ? "hide" : "show"}`) : null;
   box.append(
     el("div", { class: "insights-head", onclick: flip }, el("strong", {}, "From Analyse"),
-      el("span", { class: "sub" }, `${dockCount(items)} · gone once the text changes`), toggle),
-    el("ul", {}, items.map((item) => el("li", { class: `insight ${item.kind}` },
-      el("span", { class: "kind" }, INSIGHT_LABELS[item.kind] || item.kind),
-      el("span", { class: "who" }, item.skills.flatMap((id, n) => [n ? (item.kind === "disagreement" ? " ↔ " : ", ") : null,
-        el("span", { class: "ref call", onclick: () => openSkill(id),
-          title: item.lines?.[id]?.length ? `line ${item.lines[id].join(", ")}` : id }, id)])),
-      el("span", { class: "what" }, item.message,
-        item.proposal ? el("span", { class: "ask" }, `Would ask Claude to change ${item.proposal.skill}: ${item.proposal.text}`) : null),
-      item.proposal ? proposalButton(item.proposal) : el("span")))));
+      el("span", { class: "sub" }, `${dockCount(items)} · gone once the text changes`), showAside, toggle),
+    el("ul", {}, items.map((item) => insightRow(item, false)),
+      state.showDismissed ? dismissed.map((item) => insightRow(item, true)) : []));
   return box;
+}
+
+function insightRow(item, aside) {
+  return el("li", { class: `insight ${item.kind}${aside ? " dismissed" : ""}` },
+    el("span", { class: "kind" }, INSIGHT_LABELS[item.kind] || item.kind),
+    el("span", { class: "who" }, item.skills.flatMap((id, n) => [n ? (item.kind === "disagreement" ? " ↔ " : ", ") : null,
+      el("span", { class: "ref call", onclick: () => openSkill(id),
+        title: item.lines?.[id]?.length ? `line ${item.lines[id].join(", ")}` : id }, id)])),
+    el("span", { class: "what" }, item.message,
+      item.proposal ? el("span", { class: "ask" }, `Would ask Claude to change ${item.proposal.skill}: ${item.proposal.text}`) : null),
+    el("span", { class: "actions" }, aside
+      ? el("button", { onclick: () => setAside(item, false), title: "Show it again" }, "Restore")
+      : [item.proposal ? proposalButton(item.proposal) : null,
+         el("button", { onclick: () => setAside(item, true), title: "Hide it until one of its skills' texts changes" }, "Dismiss")]));
+}
+
+async function setAside(item, dismiss) {
+  try {
+    await api(dismiss ? "/dismiss" : "/restore", { kind: item.kind, skills: item.skills });
+    refresh(true);
+  } catch (error) {
+    toast(`Not ${dismiss ? "dismissed" : "restored"}: ${error.message}`);
+  }
 }
 
 function dockCount(items) {
   const suggested = items.filter((i) => SUGGESTION_KINDS.has(i.kind)).length;
   const found = items.length - suggested;
   const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
-  return [found ? plural(found, "finding") : null, suggested ? plural(suggested, "suggestion") : null].filter(Boolean).join(" · ");
+  return [found ? plural(found, "finding") : null, suggested ? plural(suggested, "suggestion") : null]
+    .filter(Boolean).join(" · ") || "nothing left";
 }
 
 // A proposal already in the inbox or running shows as sent, so it is not sent twice.

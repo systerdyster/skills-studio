@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 
 from sx import insights
-from sx.insights import InsightsError, as_findings, live, save
+from sx.insights import InsightsError, as_findings, dismiss, dismissals, live, partition, restore, save
 from sx.state import StudioPaths
 from sx.wirekinds import fingerprint
 
@@ -99,6 +99,66 @@ class SaveTest(unittest.TestCase):
         self.paths.ensure()
         self.paths.insights.write_text("{not json")
         self.assertEqual(insights.read(self.paths), [])
+
+
+class DismissTest(unittest.TestCase):
+    """A dismissed item stays hidden while its texts are unchanged — also when Analyse makes it again,
+    in other words — and comes back to be judged anew once any of them changes."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.paths = StudioPaths(Path(self.tmp.name))
+        save(self.paths, [DISAGREE, SPLIT], SKILLS, TEXTS)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def shown_and_dismissed(self, texts=TEXTS):
+        shown, dismissed = partition(live(insights.read(self.paths), texts), dismissals(self.paths))
+        return [i["kind"] for i in shown], [i["kind"] for i in dismissed]
+
+    def test_a_dismissed_item_is_set_apart(self):
+        dismiss(self.paths, {"kind": "split", "skills": ["code-review"]}, TEXTS)
+        self.assertEqual(self.shown_and_dismissed(), (["disagreement"], ["split"]))
+
+    def test_the_skills_match_in_any_order(self):
+        dismiss(self.paths, {"kind": "disagreement", "skills": ["commit", "code-review"]}, TEXTS)
+        self.assertEqual(self.shown_and_dismissed(), (["split"], ["disagreement"]))
+
+    def test_it_stays_dismissed_when_analyse_says_it_again(self):
+        dismiss(self.paths, {"kind": "split", "skills": ["code-review"]}, TEXTS)
+        save(self.paths, [{**SPLIT, "message": "Same split, other words."}], SKILLS, TEXTS)
+        self.assertEqual(self.shown_and_dismissed(), ([], ["split"]))
+
+    def test_it_comes_back_once_the_text_changes(self):
+        dismiss(self.paths, {"kind": "split", "skills": ["code-review"]}, TEXTS)
+        changed = {**TEXTS, "code-review": "review text, rewritten"}
+        save(self.paths, [SPLIT], SKILLS, changed)
+        self.assertEqual(self.shown_and_dismissed(changed), (["split"], []))
+
+    def test_a_lapsed_dismissal_is_dropped_on_the_next_write(self):
+        dismiss(self.paths, {"kind": "split", "skills": ["code-review"]}, TEXTS)
+        changed = {**TEXTS, "code-review": "review text, rewritten"}
+        save(self.paths, [{"kind": "unused", "skills": ["commit"], "message": "Nobody says commit."}], SKILLS, changed)
+        dismiss(self.paths, {"kind": "unused", "skills": ["commit"]}, changed)
+        self.assertEqual([d["kind"] for d in dismissals(self.paths)], ["unused"])
+
+    def test_restore_brings_it_back(self):
+        dismiss(self.paths, {"kind": "split", "skills": ["code-review"]}, TEXTS)
+        restore(self.paths, {"kind": "split", "skills": ["code-review"]})
+        self.assertEqual(self.shown_and_dismissed(), (["disagreement", "split"], []))
+
+    def test_only_an_item_that_holds_can_be_dismissed(self):
+        with self.assertRaisesRegex(InsightsError, "no such"):
+            dismiss(self.paths, {"kind": "merge", "skills": ["code-review"]}, TEXTS)
+
+    def test_a_dismissal_names_kind_and_skills(self):
+        with self.assertRaisesRegex(InsightsError, "kind"):
+            dismiss(self.paths, {"skills": ["code-review"]}, TEXTS)
+
+    def test_an_unreadable_file_dismisses_nothing(self):
+        self.paths.dismissed.write_text("{not json")
+        self.assertEqual(dismissals(self.paths), [])
 
 
 class LiveTest(unittest.TestCase):

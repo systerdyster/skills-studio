@@ -13,11 +13,11 @@ class StudioPaths:
         self.inbox = self.root / "inbox"
         self.active = self.root / "active"
         self.done = self.root / "done"
-        self.analysis = self.root / "analysis"
         self.server = self.root / "server.json"
         self.lease = self.root / "lease.json"
         self.wire_kinds = self.root / "wire-kinds.json"
         self.insights = self.root / "insights.json"
+        self.dismissed = self.root / "dismissed.json"
 
     def ensure(self):
         """Create the studio's folder, ignored by git from inside, so the project's .gitignore stays

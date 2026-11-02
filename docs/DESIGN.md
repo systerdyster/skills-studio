@@ -40,7 +40,7 @@ flowchart LR
     SRV["server.py + studio page<br/>127.0.0.1 + token"]
     subgraph P[project]
         SKL[".claude/skills/"]
-        ST["studio state<br/>(git-ignored)<br/>inbox/ · analysis/ · lease"]
+        ST["studio state<br/>(git-ignored)<br/>inbox/ · insights · lease"]
     end
     RO[("user + plugin skills<br/>read-only")]
 
@@ -138,7 +138,12 @@ texts are unchanged, and each run replaces the whole set.
 It also records **suggestions**, kept the same way, each with a **proposal**: the `change` task the
 developer can send from the page — which project skill to change, and what to ask. Sent, it is a
 change task like any other: Claude proposes in the chat and applies on a yes. A finding may carry a
-proposal too. It suggests:
+proposal too.
+
+Any finding or suggestion can be **dismissed** from the page. The dismissal is kept in
+`.skills-studio/dismissed.json` with its kind, its skills and their fingerprints, and holds while those
+texts are unchanged: a later Analyse that makes the same item on the same texts has it hidden, and is
+told not to make it. Once a text changes, the dismissal lapses with the item. It suggests:
 
 - **Splits** — parts of a skill that are a skill of their own, also when the part is spread across
   sections (the git handling in a close-feature skill sits in four steps and the guardrails).

@@ -105,7 +105,7 @@ def _scan(args, project, home, paths):
 
 def _graph(args, project, home, paths):
     built = graph.build(project, home)
-    return _print({key: built[key] for key in ("project", "skills", "wires", "flows", "insights")})
+    return _print({key: built[key] for key in ("project", "skills", "wires", "flows", "insights", "dismissed")})
 
 
 def _kinds(args, project, home, paths):
@@ -124,11 +124,13 @@ def _kinds(args, project, home, paths):
 
 
 def _insights(args, project, home, paths):
-    """Analyse's findings: the ones that still hold, or saving a new set in place of the last."""
+    """Analyse's findings and suggestions: the ones that still hold, with those the developer
+    dismissed apart — or saving a new set in place of the last."""
     skills = scan(project, home)
     texts = graph.texts(skills)
     if args.action == "show":
-        return _print({"insights": insights.live(insights.read(paths), texts)})
+        shown, dismissed = insights.partition(insights.live(insights.read(paths), texts), insights.dismissals(paths))
+        return _print({"insights": shown, "dismissed": dismissed})
     if not args.file:
         return _fail("save needs the findings file")
     try:

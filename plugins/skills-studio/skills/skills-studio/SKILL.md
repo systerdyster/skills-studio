@@ -109,6 +109,10 @@ their headings or steps.
 Suggest only what you would defend; none is a fine result. A finding may carry a `proposal` too, when
 the fix is clear.
 
+**Dismissed.** `S insights show` lists under `dismissed` what the developer set aside on the page. A
+dismissal holds while the texts of its skills are unchanged. Don't make the same kind on the same
+skills again, however you would word it: the developer has said no, and it would stay hidden anyway.
+
 Write findings and suggestions to one scratch file as a list, `[{"kind": "…", "skills": ["<id>", …],
 "message": "<one or two sentences>", "lines": {"<id>": [<line>, …]}, "proposal": {…}}]`, and run
 `S insights save <file>`. It replaces the last set, so include every item that still holds; an item
