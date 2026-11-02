@@ -47,8 +47,12 @@ def renew(paths, holder, now=None):
 
 
 def release(paths, holder):
-    held = current(paths)
-    if held and held["holder"] == holder:
+    """Lets go of the holder's lease, lapsed or not; another session's lease is left alone."""
+    try:
+        held = json.loads(paths.lease.read_text())
+    except (OSError, ValueError):
+        return
+    if isinstance(held, dict) and held.get("holder") == holder:
         paths.lease.unlink(missing_ok=True)
 
 

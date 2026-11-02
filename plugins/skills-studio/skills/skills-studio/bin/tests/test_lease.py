@@ -56,6 +56,11 @@ class LeaseTest(unittest.TestCase):
         lease.release(self.paths, "session-a")
         lease.take(self.paths, "session-b", now=T0)
 
+    def test_release_removes_a_lapsed_lease_too(self):
+        lease.take(self.paths, "session-a", now=datetime(2020, 1, 1, tzinfo=timezone.utc))
+        lease.release(self.paths, "session-a")
+        self.assertFalse(self.paths.lease.exists())
+
     def test_release_by_another_session_leaves_it(self):
         lease.take(self.paths, "session-a", now=T0)
         lease.release(self.paths, "session-b")
