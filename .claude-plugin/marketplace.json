@@ -1,0 +1,14 @@
+{
+  "name": "skills-studio",
+  "description": "Fredrik's local marketplace for the Skills Studio plugin.",
+  "owner": {
+    "name": "Fredrik Gardin"
+  },
+  "plugins": [
+    {
+      "name": "skills-studio",
+      "source": "./plugins/skills-studio",
+      "description": "Skills Studio: a visual workspace for a project's Claude skills."
+    }
+  ]
+}
