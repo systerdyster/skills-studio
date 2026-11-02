@@ -31,7 +31,7 @@ from sx.state import StudioPaths, running  # noqa: E402
 from sx.tasks import TaskError, in_flight, submit  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
-MAX_BODY = 64 * 1024
+MAX_BODY = 256 * 1024
 GRAPH_MAX_AGE = 2.0
 
 

@@ -58,6 +58,29 @@ class ValidateTest(unittest.TestCase):
         with self.assertRaisesRegex(TaskError, "read-only"):
             validate({"kind": "improve", "skill": "brain-tdd", "focus": ""}, SKILLS)
 
+    def test_save_keeps_the_whole_text(self):
+        body = "# Git finish\n\n" + "Merge it. " * 1000
+        task = validate({"kind": "save", "skill": "git-finish", "name": "git-finish", "description": "Merge.", "body": body}, SKILLS)
+        self.assertEqual(task["body"], body)
+
+    def test_save_refuses_a_text_too_long_to_keep_whole(self):
+        with self.assertRaisesRegex(TaskError, "at most"):
+            validate({"kind": "save", "skill": "git-finish", "name": "git-finish", "description": "",
+                      "body": "x" * 60001}, SKILLS)
+
+    def test_save_may_keep_a_name_that_is_not_kebab(self):
+        skills = SKILLS + [{**sk("review"), "id": "jira:review", "name": "jira:review"}]
+        validate({"kind": "save", "skill": "jira:review", "name": "jira:review", "description": "", "body": ""}, skills)
+
+    def test_save_with_a_new_name_needs_it_free(self):
+        validate({"kind": "save", "skill": "git-finish", "name": "git-merge", "description": "", "body": ""}, SKILLS)
+        with self.assertRaisesRegex(TaskError, "taken"):
+            validate({"kind": "save", "skill": "git-finish", "name": "close-feature", "description": "", "body": ""}, SKILLS)
+
+    def test_save_of_a_user_skill_is_refused(self):
+        with self.assertRaisesRegex(TaskError, "read-only"):
+            validate({"kind": "save", "skill": "brain-tdd", "name": "brain-tdd", "description": "", "body": ""}, SKILLS)
+
     def test_delete_only_a_project_skill(self):
         validate({"kind": "delete", "skill": "git-finish"}, SKILLS)
         with self.assertRaisesRegex(TaskError, "read-only"):

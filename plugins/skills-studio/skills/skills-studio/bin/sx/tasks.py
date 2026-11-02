@@ -9,16 +9,19 @@ import secrets
 from datetime import datetime, timezone
 
 MAX_TEXT = 4000
+MAX_SKILL_TEXT = 60000
 NAME = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 EDITABLE_FIELDS = ("name", "description")
 
 # kind -> fields it carries, and how each is checked:
 #   writable: a project skill's id   any: any skill's id in scope   free: a new, unused kebab name
-#   field: one of EDITABLE_FIELDS    text: free text, capped
+#   field: one of EDITABLE_FIELDS    text: free text, capped    whole: a skill's whole text, refused if too long
+#   rename: the skill's name as it is, or a free kebab name
 KINDS = {
     "link": {"from": "writable", "to": "any"},
     "unlink": {"from": "writable", "to": "any"},
     "edit": {"skill": "writable", "field": "field", "value": "text"},
+    "save": {"skill": "writable", "name": "rename", "description": "text", "body": "whole"},
     "change": {"skill": "writable", "text": "text"},
     "improve": {"skill": "writable", "focus": "text"},
     "delete": {"skill": "writable"},
@@ -42,7 +45,14 @@ def validate(raw, skills):
         value = raw.get(field)
         if not isinstance(value, str):
             raise TaskError(f"{field} is missing")
-        task[field] = _check(field, rule, value.strip() if rule != "text" else value, by_id)
+        if rule == "rename":
+            continue
+        task[field] = _check(field, rule, value.strip() if rule not in ("text", "whole") else value, by_id)
+    for field, rule in KINDS[raw["kind"]].items():
+        if rule == "rename":
+            current = by_id[task["skill"]]["name"]
+            wanted = raw[field].strip()
+            task[field] = wanted if wanted == current else _check(field, "free", wanted, by_id)
     return task
 
 
@@ -62,6 +72,9 @@ def _check(field, rule, value, by_id):
             raise TaskError(f"field: only {' or '.join(EDITABLE_FIELDS)} can be edited in place")
     elif rule == "text":
         value = value[:MAX_TEXT]
+    elif rule == "whole":
+        if len(value) > MAX_SKILL_TEXT:
+            raise TaskError(f"{field}: at most {MAX_SKILL_TEXT} characters; cutting it would lose the rest")
     return value
 
 
@@ -84,7 +97,7 @@ def submit(paths, raw, skills):
 OUTCOMES = ("done", "declined", "failed")
 TASK_ID = re.compile(r"^[0-9TZ]+-[a-z]+-[0-9a-f]+$")
 TARGET_FIELD = {"link": "from", "unlink": "from", "edit": "skill", "change": "skill", "improve": "skill",
-                "delete": "skill"}
+                "delete": "skill", "save": "skill"}
 
 
 def pending(paths):
