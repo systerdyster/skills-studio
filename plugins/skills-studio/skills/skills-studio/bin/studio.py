@@ -10,13 +10,14 @@ import sys
 import time
 from pathlib import Path
 
-from sx import graph, lease, tasks, wirekinds
+from sx import graph, insights, lease, tasks, wirekinds
 from sx.copying import CopyError, copy_skill
 from sx.graph import LEVELS
 from sx.lease import LeaseHeld
 from sx.scan import scan
 from sx.state import StudioPaths, running
 from sx.tasks import TaskError
+from sx.insights import InsightsError
 from sx.wirekinds import KindsError
 from sx.wires import wires
 
@@ -65,6 +66,10 @@ def build_parser():
     kinds = commands.add_parser("kinds", parents=[common], help="Analyse: which wires are calls and which mentions")
     kinds.add_argument("action", choices=["pending", "save"])
     kinds.add_argument("file", nargs="?", help="save: the judgement as JSON")
+
+    found = commands.add_parser("insights", parents=[common], help="Analyse: findings only a reading can make")
+    found.add_argument("action", choices=["show", "save"])
+    found.add_argument("file", nargs="?", help="save: the findings as a JSON list; replaces the last set")
     return parser
 
 
@@ -78,7 +83,7 @@ def main(argv=None):
     paths = StudioPaths(project)
     try:
         return COMMANDS[args.command](args, project, home, paths)
-    except (TaskError, CopyError, KindsError) as error:
+    except (TaskError, CopyError, KindsError, InsightsError) as error:
         return _fail(str(error))
     except LeaseHeld as error:
         return _fail(str(error), held_by=error.lease["holder"])
@@ -100,7 +105,7 @@ def _scan(args, project, home, paths):
 
 def _graph(args, project, home, paths):
     built = graph.build(project, home)
-    return _print({key: built[key] for key in ("project", "skills", "wires", "flows")})
+    return _print({key: built[key] for key in ("project", "skills", "wires", "flows", "insights")})
 
 
 def _kinds(args, project, home, paths):
@@ -116,6 +121,21 @@ def _kinds(args, project, home, paths):
     except (OSError, ValueError) as error:
         return _fail(f"cannot read {args.file}: {error}")
     return _print({"saved": sorted(wirekinds.save(paths, raw, skills, found, texts))})
+
+
+def _insights(args, project, home, paths):
+    """Analyse's findings: the ones that still hold, or saving a new set in place of the last."""
+    skills = scan(project, home)
+    texts = graph.texts(skills)
+    if args.action == "show":
+        return _print({"insights": insights.live(insights.read(paths), texts)})
+    if not args.file:
+        return _fail("save needs the findings file")
+    try:
+        raw = json.loads(Path(args.file).read_text())
+    except (OSError, ValueError) as error:
+        return _fail(f"cannot read {args.file}: {error}")
+    return _print({"saved": len(insights.save(paths, raw, skills, texts))})
 
 
 def _check(args, project, home, paths):
@@ -223,7 +243,7 @@ def _copy(args, project, home, paths):
 
 COMMANDS = {
     "scan": _scan, "graph": _graph, "check": _check, "open": _open, "stop": _stop, "lease": _lease,
-    "watch": _watch, "tasks": _tasks, "task": _task, "copy": _copy, "kinds": _kinds,
+    "watch": _watch, "tasks": _tasks, "task": _task, "copy": _copy, "kinds": _kinds, "insights": _insights,
 }
 
 

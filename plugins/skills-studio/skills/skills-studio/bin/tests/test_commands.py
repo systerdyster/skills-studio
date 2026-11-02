@@ -99,6 +99,26 @@ class CommandTest(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("project", out["error"])
 
+    def test_insights_saved_show_on_the_graph_until_the_text_changes(self):
+        found = Path(self.tmp.name) / "insights.json"
+        found.write_text(json.dumps([{"kind": "badly-written", "skills": ["git-finish"],
+                                      "message": "Says merge twice, in two ways.", "lines": {"git-finish": [5]}}]))
+        self.assertEqual(self.run_cli("insights", "save", str(found)), (0, {"saved": 1}))
+        _, graph = self.run_cli("graph")
+        self.assertEqual([i["kind"] for i in graph["insights"]], ["badly-written"])
+        _, checked = self.run_cli("check")
+        self.assertIn("analyse-badly-written", {f["check"] for f in checked["findings"]})
+        skill = self.project / ".claude" / "skills" / "git-finish" / "SKILL.md"
+        skill.write_text(skill.read_text() + "Fixed.\n")
+        self.assertEqual(self.run_cli("insights", "show")[1], {"insights": []})
+
+    def test_insights_save_refuses_an_unknown_kind(self):
+        found = Path(self.tmp.name) / "insights.json"
+        found.write_text(json.dumps([{"kind": "vibes", "skills": ["git-finish"], "message": "x"}]))
+        code, out = self.run_cli("insights", "save", str(found))
+        self.assertEqual(code, 1)
+        self.assertIn("kind", out["error"])
+
     def test_stop_without_a_running_studio_says_so(self):
         self.assertEqual(self.run_cli("stop"), (0, {"stopped": False}))
 

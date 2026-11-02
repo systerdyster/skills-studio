@@ -61,7 +61,7 @@ backticks (`` `commit` ``). Never add frontmatter fields to record links.
 | `delete` | `skill` | Delete the skill's folder. First list every skill that names it (`S graph`, wires to it) and ask whether to remove those mentions too or leave them as broken wires. | Yes — always, naming the callers |
 | `new` | `name`, `description`, `intent` | Write `.claude/skills/<name>/SKILL.md` with the developer, using a skill-creator skill when one is available. | Yes |
 | `copy` | `source`, `name` | `S copy <source> <name>`, then `S check --text` and show the findings for the copy — personal content above all, since it lands in a shared repository. | No |
-| `analyse` | — | Judge every wire a **call** or a **mention** (below). Suggestions — splits, merges, tightening — are not built yet: say so in the note. | No — save, then sum up |
+| `analyse` | — | Judge every wire a **call** or a **mention**, then record the **findings** (both below). Suggestions — splits, merges — are not built yet: say so in the note. | No — save, then sum up |
 | `close` | — | The developer pressed *Close studio*; the server has already stopped itself. Do **Stop** below. | No |
 
 **Calls and mentions.** `S kinds pending` lists the project skills whose wires are not judged for
@@ -76,8 +76,25 @@ place in the skill, then judge each wire:
 A wire with one call among several mentions is a call. Write the judgement to a scratch file as
 `{"<skill>": {"fingerprint": "<from pending>", "wires": {"<to>": {"kind": "call|mention", "reason":
 "<the deciding words, quoted>"}}}}` and run `S kinds save <file>`; it refuses a skill whose text
-changed meanwhile. Sum up in the chat: how many calls and mentions, and any pair where the two skills'
-texts disagree about who calls whom — that is a finding for the developer, not something to fix.
+changed meanwhile.
+
+**Findings.** Then read all the project's skills, with `S check --text` for what the local checks
+already say, and record what only a reading can tell — the studio shows it above the cards and on
+each skill concerned:
+
+| `kind` | When |
+|---|---|
+| `disagreement` | Two skills' texts contradict each other about how they work together — who calls whom, who owns a step. Name both, quote both. |
+| `dead-reference` | A skill names one that does not exist, or by a name Claude does not know it by (a folder name for a skill named otherwise). |
+| `procedure-in-description` | The description spends its every-turn tokens on how the skill works rather than what it does and when to use it. |
+| `unused` | Usage shows it never or rarely runs; say why you think so — triggers that overlap another's, a name nobody would say. |
+| `badly-written` | Unclear, contradictory or padded: steps that can't be followed, rules that clash, a body far longer than its job. Say what, specifically. |
+
+Write them to a scratch file as a list, `[{"kind": "…", "skills": ["<id>", …], "message": "<one or
+two sentences>", "lines": {"<id>": [<line>, …]}}]`, and run `S insights save <file>`. It replaces the
+last set, so include every finding that still holds; a finding disappears by itself once any of its
+skills' text changes. Don't fix anything: findings are for the developer. Sum up in the chat: how many
+calls and mentions, and the findings, worst first.
 
 After any task that changed skills, run `S check --text` and mention new findings for the skills you
 touched. Never commit: the developer decides what to keep.

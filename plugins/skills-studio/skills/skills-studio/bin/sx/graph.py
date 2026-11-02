@@ -1,10 +1,10 @@
 """The whole picture of a project's skills: the scan, the wires (each a call or a mention once Analyse
-has judged it), the local checks' findings and the flows the canvas can show one at a time. Flows
+has judged it), the findings — the local checks' and Analyse's that still hold — and the flows. Flows
 follow calls only; a wire not judged yet counts as one."""
 
 from pathlib import Path
 
-from sx import wirekinds
+from sx import insights, wirekinds
 from sx.checks import checks
 from sx.flows import flows
 from sx.scan import scan
@@ -15,14 +15,16 @@ LEVELS = ("error", "warning", "info")
 
 
 def build(project, home):
+    paths = StudioPaths(project)
     skills = scan(project, home)
     sources = texts(skills)
-    found_wires = wirekinds.apply(wires(skills), sources, wirekinds.read(StudioPaths(project)))
-    findings = sorted(checks(skills, found_wires, sources),
+    found_wires = wirekinds.apply(wires(skills), sources, wirekinds.read(paths))
+    analysed = insights.live(insights.read(paths), sources)
+    findings = sorted(checks(skills, found_wires, sources) + insights.as_findings(analysed),
                       key=lambda f: (LEVELS.index(f["level"]), f["skill"], f["check"]))
     calls = [w for w in found_wires if w["kind"] != "mention"]
     return {"project": str(project), "skills": skills, "wires": found_wires, "findings": findings,
-            "flows": flows(skills, calls)}
+            "insights": analysed, "flows": flows(skills, calls)}
 
 
 def texts(skills):
