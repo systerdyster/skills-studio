@@ -56,21 +56,24 @@ def wires(skills):
         for target, (other, pattern) in targets.items():
             if target == source:
                 continue
-            match = pattern.search(body)
-            if not match and skill.get("plugin") and other.get("plugin") == skill["plugin"]:
-                match = _mention(other["name"]).search(body)
-            if match:
-                first[target] = (match.start(), False)
+            matches = [m.start() for m in pattern.finditer(body)]
+            if not matches and skill.get("plugin") and other.get("plugin") == skill["plugin"]:
+                matches = [m.start() for m in _mention(other["name"]).finditer(body)]
+            if matches:
+                first[target] = (matches, False)
         for name, at in _skill_looking_references(body):
-            if name not in known and name not in first:
-                first[name] = (at, True)
-        ordered = sorted(first.items(), key=lambda item: item[1][0])
-        for order, (target, (at, broken)) in enumerate(ordered, start=1):
+            if name not in known:
+                first.setdefault(name, ([], True))[0].append(at)
+        line_of = lambda at: skill.get("body_line", 1) + body.count("\n", 0, at)  # noqa: E731
+        ordered = sorted(first.items(), key=lambda item: min(item[1][0]))
+        for order, (target, (starts, broken)) in enumerate(ordered, start=1):
+            lines = sorted({line_of(at) for at in starts})
             result.append({
                 "from": source,
                 "to": target,
                 "order": order,
-                "line": skill.get("body_line", 1) + body.count("\n", 0, at),
+                "line": lines[0],
+                "lines": lines,
                 "broken": broken,
             })
     return result

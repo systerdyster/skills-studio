@@ -75,6 +75,30 @@ class CommandTest(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("no task", reply["error"])
 
+    def test_kinds_pending_then_saved_then_on_the_graph(self):
+        write_skill(self.project / ".claude" / "skills", "ship", "Then run `git-finish`.\n")
+        code, found = self.run_cli("kinds", "pending")
+        self.assertEqual(code, 0)
+        [ship] = found["pending"]
+        self.assertEqual(ship["wires"][0]["lines"][0]["text"], "Then run `git-finish`.")
+        verdict = {"ship": {"fingerprint": ship["fingerprint"],
+                            "wires": {"git-finish": {"kind": "call", "reason": "run `git-finish`"}}}}
+        judged = Path(self.tmp.name) / "kinds.json"
+        judged.write_text(json.dumps(verdict))
+        code, _ = self.run_cli("kinds", "save", str(judged))
+        self.assertEqual(code, 0)
+        self.assertEqual(self.run_cli("kinds", "pending")[1]["pending"], [])
+        _, graph = self.run_cli("graph")
+        [wire] = [w for w in graph["wires"] if w["from"] == "ship"]
+        self.assertEqual(wire["kind"], "call")
+
+    def test_kinds_save_refuses_a_bad_judgement(self):
+        judged = Path(self.tmp.name) / "kinds.json"
+        judged.write_text(json.dumps({"brain-tdd": {"fingerprint": "x", "wires": {}}}))
+        code, out = self.run_cli("kinds", "save", str(judged))
+        self.assertEqual(code, 1)
+        self.assertIn("project", out["error"])
+
     def test_stop_without_a_running_studio_says_so(self):
         self.assertEqual(self.run_cli("stop"), (0, {"stopped": False}))
 

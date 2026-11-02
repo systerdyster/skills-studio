@@ -60,8 +60,23 @@ backticks (`` `commit` ``). Never add frontmatter fields to record links.
 | `delete` | `skill` | Delete the skill's folder. First list every skill that names it (`S graph`, wires to it) and ask whether to remove those mentions too or leave them as broken wires. | Yes — always, naming the callers |
 | `new` | `name`, `description`, `intent` | Write `.claude/skills/<name>/SKILL.md` with the developer, using a skill-creator skill when one is available. | Yes |
 | `copy` | `source`, `name` | `S copy <source> <name>`, then `S check --text` and show the findings for the copy — personal content above all, since it lands in a shared repository. | No |
-| `analyse` | — | Not built yet: say so and file it `declined`. | — |
+| `analyse` | — | Judge every wire a **call** or a **mention** (below). Suggestions — splits, merges, tightening — are not built yet: say so in the note. | No — save, then sum up |
 | `close` | — | The developer pressed *Close studio*; the server has already stopped itself. Do **Stop** below. | No |
+
+**Calls and mentions.** `S kinds pending` lists the project skills whose wires are not judged for
+their text as it is now, each wire with every line that names its target. Read those lines in their
+place in the skill, then judge each wire:
+
+- **call** — following the skill makes Claude run the other skill: as a step, a preflight, or by
+  handing the work over to it.
+- **mention** — anything else: a *Related* link, a "don't run it here", a note on what the other skill
+  does or expects, a pointer that leaves running it to the developer.
+
+A wire with one call among several mentions is a call. Write the judgement to a scratch file as
+`{"<skill>": {"fingerprint": "<from pending>", "wires": {"<to>": {"kind": "call|mention", "reason":
+"<the deciding words, quoted>"}}}}` and run `S kinds save <file>`; it refuses a skill whose text
+changed meanwhile. Sum up in the chat: how many calls and mentions, and any pair where the two skills'
+texts disagree about who calls whom — that is a finding for the developer, not something to fix.
 
 After any task that changed skills, run `S check --text` and mention new findings for the skills you
 touched. Never commit: the developer decides what to keep.

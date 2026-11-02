@@ -120,6 +120,11 @@ class OrderTest(unittest.TestCase):
         wire = found([s("a", body), s("git-finish")])[("a", "git-finish")]
         self.assertEqual(wire["line"], 2)
 
+    def test_every_line_that_mentions_it_is_listed(self):
+        body = "Run `git-finish`.\nmore\nThen `git-finish` again, and `git-finish` once more.\n"
+        wire = found([s("a", body), s("git-finish")])[("a", "git-finish")]
+        self.assertEqual(wire["lines"], [1, 3])
+
     def test_line_counts_from_the_top_of_the_file(self):
         skill = {"name": "a", "body": "intro\nrun git-finish\n", "body_line": 5}
         self.assertEqual(found([skill, s("git-finish")])[("a", "git-finish")]["line"], 6)

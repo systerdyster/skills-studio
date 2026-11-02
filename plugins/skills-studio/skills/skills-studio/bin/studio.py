@@ -10,13 +10,14 @@ import sys
 import time
 from pathlib import Path
 
-from sx import graph, lease, tasks
+from sx import graph, lease, tasks, wirekinds
 from sx.copying import CopyError, copy_skill
 from sx.graph import LEVELS
 from sx.lease import LeaseHeld
 from sx.scan import scan
 from sx.state import StudioPaths, running
 from sx.tasks import TaskError
+from sx.wirekinds import KindsError
 from sx.wires import wires
 
 SERVER = Path(__file__).resolve().parent.parent / "server.py"
@@ -60,6 +61,10 @@ def build_parser():
     copy = commands.add_parser("copy", parents=[common], help="copy a skill into the project under a new name")
     copy.add_argument("source", help="the skill's id")
     copy.add_argument("name", help="the new name")
+
+    kinds = commands.add_parser("kinds", parents=[common], help="Analyse: which wires are calls and which mentions")
+    kinds.add_argument("action", choices=["pending", "save"])
+    kinds.add_argument("file", nargs="?", help="save: the judgement as JSON")
     return parser
 
 
@@ -73,7 +78,7 @@ def main(argv=None):
     paths = StudioPaths(project)
     try:
         return COMMANDS[args.command](args, project, home, paths)
-    except (TaskError, CopyError) as error:
+    except (TaskError, CopyError, KindsError) as error:
         return _fail(str(error))
     except LeaseHeld as error:
         return _fail(str(error), held_by=error.lease["holder"])
@@ -94,8 +99,23 @@ def _scan(args, project, home, paths):
 
 
 def _graph(args, project, home, paths):
+    built = graph.build(project, home)
+    return _print({key: built[key] for key in ("project", "skills", "wires", "flows")})
+
+
+def _kinds(args, project, home, paths):
+    """Analyse's machinery for calls and mentions: what needs judging, and saving the judgement."""
     skills = scan(project, home)
-    return _print({"project": str(project), "skills": skills, "wires": wires(skills)})
+    found, texts = wires(skills), graph.texts(skills)
+    if args.action == "pending":
+        return _print({"pending": wirekinds.pending(skills, found, texts, wirekinds.read(paths))})
+    if not args.file:
+        return _fail("save needs the judgement file")
+    try:
+        raw = json.loads(Path(args.file).read_text())
+    except (OSError, ValueError) as error:
+        return _fail(f"cannot read {args.file}: {error}")
+    return _print({"saved": sorted(wirekinds.save(paths, raw, skills, found, texts))})
 
 
 def _check(args, project, home, paths):
@@ -203,7 +223,7 @@ def _copy(args, project, home, paths):
 
 COMMANDS = {
     "scan": _scan, "graph": _graph, "check": _check, "open": _open, "stop": _stop, "lease": _lease,
-    "watch": _watch, "tasks": _tasks, "task": _task, "copy": _copy,
+    "watch": _watch, "tasks": _tasks, "task": _task, "copy": _copy, "kinds": _kinds,
 }
 
 
