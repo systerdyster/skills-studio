@@ -29,6 +29,8 @@ button, input, textarea { font: inherit; color: inherit; }
 button { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 11px; cursor: pointer; }
 button:hover { border-color: var(--accent); }
 button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+button.danger { color: var(--error); }
+button.danger:hover { border-color: var(--error); }
 input, textarea { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; width: 100%; }
 textarea { resize: vertical; min-height: 70px; }
 code, pre { font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
@@ -71,6 +73,8 @@ header .tabs { margin: 0; }
   width: 220px; min-height: 0; padding: 8px 10px; box-shadow: 0 1px 2px rgb(0 0 0 / .06); }
 .drawflow .drawflow-node.selected { background: var(--surface); border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
 .drawflow .drawflow-node.readonly { background: var(--readonly); }
+.drawflow .drawflow-node.unused { opacity: .55; }
+.drawflow .drawflow-node.unused:hover, .drawflow .drawflow-node.unused.selected { opacity: 1; }
 .drawflow .drawflow-node.missing { background: transparent; border: 1px dashed var(--error); color: var(--error); }
 .drawflow .drawflow-node .input, .drawflow .drawflow-node .output { width: 12px; height: 12px; background: var(--surface); border: 2px solid var(--wire); }
 .drawflow .drawflow-node .output:hover { background: var(--accent); }
@@ -121,6 +125,7 @@ main.closed .sub { color: var(--muted); }
   <span class="project" id="project"></span>
   <span class="counts" id="counts"></span>
   <div class="tabs flows" id="flows" role="group" aria-label="Show one flow"></div>
+  <button id="usage">Refresh usage</button>
   <button id="reset-layout" title="Forget where nodes were placed and lay them out again">Reset layout</button>
   <button id="new-skill">New skill</button>
   <button id="analyse" class="primary">Analyse</button>
@@ -147,7 +152,8 @@ const TOKEN = new URLSearchParams(location.search).get("token") || "";
 const SOURCES = ["project", "user", "synced", "plugin"];
 const POLL_MS = 4000;
 
-const state = { graph: null, tasks: [], signature: "", positions: {}, tab: "project", flow: null, selected: null, loading: false };
+const state = { graph: null, tasks: [], usage: { status: "idle", skills: {} }, signature: "", positions: {}, tab: "project",
+  flow: null, selected: null, loading: false };
 const nodeOf = new Map();   // skill id -> drawflow node id
 const skillOf = new Map();  // drawflow node id -> skill id
 const $ = (id) => document.getElementById(id);
@@ -266,9 +272,14 @@ function nodeHtml(id) {
   for (const f of findingsFor(id)) levels[f.level] += 1;
   const badges = Object.entries(levels).filter(([, n]) => n).map(([level, n]) => `<span class="badge ${level}">${n} ${level}</span>`).join("");
   const where = skill.plugin ? `${skill.source} · ${skill.plugin}` : skill.source;
+  const used = usageOf(id);
+  const uses = used ? `<span title="Last used: ${escapeHtml(used.last_used)}">${used.uses}× used</span>` : "";
   return `<div class="node-title"><span class="dot ${skill.source}"></span><span title="${escapeHtml(id)}">${escapeHtml(skill.name)}</span></div>
-    <div class="node-meta"><span>${escapeHtml(where)}</span><span>≈${skill.tokens.body} tok</span>${badges}</div>`;
+    <div class="node-meta"><span>${escapeHtml(where)}</span>${uses}<span>≈${skill.tokens.body} tok</span>${badges}</div>`;
 }
+
+const usageOf = (id) => state.usage.skills?.[id];
+const neverUsed = (id) => usageOf(id)?.uses === 0;
 
 // ---- canvas --------------------------------------------------------------------------------
 
@@ -288,7 +299,7 @@ function drawCanvas() {
     const [x, y] = state.positions[id] || fallback[id];
     const skill = skillById(id);
     const missing = id.startsWith("missing:");
-    const classes = missing ? "missing" : skill.writable ? "writable" : "readonly";
+    const classes = missing ? "missing" : `${skill.writable ? "writable" : "readonly"}${neverUsed(id) ? " unused" : ""}`;
     const node = editor.addNode(id, 1, missing ? 0 : 1, x, y, classes, { id }, nodeHtml(id));
     nodeOf.set(id, node);
     skillOf.set(String(node), id);
@@ -487,7 +498,8 @@ async function openSkill(id) {
       el("dt", {}, "Path"), el("dd", { class: "sub" }, skill.real_path),
       el("dt", {}, "Tokens"), el("dd", {}, `≈${skill.tokens.listing} listing · ≈${skill.tokens.body} body`),
       el("dt", {}, "Size"), el("dd", {}, `${skill.size} bytes`),
-      el("dt", {}, "Modified"), el("dd", {}, new Date(skill.modified).toLocaleString())),
+      el("dt", {}, "Modified"), el("dd", {}, new Date(skill.modified).toLocaleString()),
+      ...usageRows(id)),
     el("h3", {}, `Findings (${findings.length})`),
     findings.length
       ? el("ul", { class: "findings" }, findings.map((f) => el("li", {}, el("span", { class: `badge ${f.level}` }, f.level), " ",
@@ -496,10 +508,39 @@ async function openSkill(id) {
     el("h3", {}, "Calls, in order"), wireList(wiresFrom(id), (w) => w.to),
     el("h3", {}, "Called by"), wireList(wiresTo(id), (w) => w.from),
   ];
-  if (skill.writable) parts.push(...editForm(skill, description));
+  if (skill.writable) parts.push(...editForm(skill, description), ...improveForm(skill));
   else parts.push(...copyForm(skill));
   parts.push(el("h3", {}, "Text"), el("pre", {}, skill.body));
+  if (skill.writable) parts.push(deleteButton(skill));
   showPanel(...parts);
+}
+
+function usageRows(id) {
+  const used = usageOf(id);
+  if (!used) return [el("dt", {}, "Used"), el("dd", { class: "sub" }, state.usage.status === "loading" ? "Fetching…" : "Not in the report")];
+  return [
+    el("dt", {}, "Used"), el("dd", {}, used.uses ? `${used.uses}× · last ${used.last_used}` : "Never"),
+    el("dt", {}, "Last 7 days"), el("dd", {}, used.tokens_7d ? `${used.tokens_7d} tokens` : "—"),
+    el("dt", {}, "Every turn"), el("dd", {}, `${used.context} tokens in the skill listing`),
+  ];
+}
+
+function improveForm(skill) {
+  const focus = el("input", { placeholder: "Optional: e.g. make the description trigger better" });
+  return [
+    el("h3", {}, "Improve with skill-creator"), focus,
+    el("div", { class: "row" }, el("button", { onclick: () =>
+      sendTask({ kind: "improve", skill: skill.id, focus: focus.value.trim() }, `improve ${skill.id}`) }, "Improve")),
+  ];
+}
+
+function deleteButton(skill) {
+  const callers = wiresTo(skill.id).map((w) => w.from);
+  const ask = () => {
+    const named = callers.length ? `\n\nCalled by: ${callers.join(", ")}. Claude will ask whether to remove those mentions too.` : "";
+    if (confirm(`Delete ${skill.id}?${named}`)) sendTask({ kind: "delete", skill: skill.id }, `delete ${skill.id}`);
+  };
+  return el("div", { class: "row" }, el("button", { class: "danger", onclick: ask }, "Delete skill"));
 }
 
 function editForm(skill, description) {
@@ -597,14 +638,34 @@ function drawFlows() {
       `Starts at ${flowName(flow)}: ${flow.skills.join(", ")}`)));
 }
 
-async function refresh(force = false) {
-  let graph, inFlight;
+function drawUsageButton() {
+  const { status, fetched_at: at, error } = state.usage;
+  const button = $("usage");
+  button.disabled = status === "loading";
+  button.textContent = { loading: "Fetching usage…", failed: "Usage failed — retry" }[status] || "Refresh usage";
+  button.title = status === "failed" ? `From /skill-doctor: ${error}`
+    : at ? `Usage from /skill-doctor, fetched ${new Date(at).toLocaleString()}` : "Fetch usage from /skill-doctor";
+}
+
+$("usage").addEventListener("click", async () => {
   try {
-    [graph, inFlight] = await Promise.all([api("/graph"), api("/tasks")]);
+    state.usage = await api("/usage", {});
+  } catch (error) {
+    return toast(`Usage not fetched: ${error.message}`);
+  }
+  drawUsageButton();
+});
+
+async function refresh(force = false) {
+  let graph, inFlight, usage;
+  try {
+    [graph, inFlight, usage] = await Promise.all([api("/graph"), api("/tasks"), api("/usage")]);
   } catch (error) {
     return toast(`Cannot reach the studio: ${error.message}`);
   }
-  const next = signature(graph) + JSON.stringify(inFlight.tasks.map((t) => [t.id, t.state]));
+  state.usage = usage;
+  drawUsageButton();
+  const next = signature(graph) + JSON.stringify(inFlight.tasks.map((t) => [t.id, t.state])) + usage.fetched_at;
   if (!force && next === state.signature) return;
   state.graph = graph;
   state.tasks = inFlight.tasks;

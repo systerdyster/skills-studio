@@ -5,7 +5,7 @@
 
 Binds to 127.0.0.1 only and prints a URL with a random token; every request must carry that token
 (the page sends it as a header) and a local Host. Serves the studio page, the project's graph (scan,
-wires, findings) and one skill at a time, and takes tasks: each is checked against a fresh scan —
+wires, findings), one skill at a time and how much each is used (/skill-doctor), and takes tasks: each is checked against a fresh scan —
 only the project's own skills may be changed — and written to .skills-studio/inbox/ for the
 session, which alone does the work."""
 
@@ -26,6 +26,7 @@ from urllib.parse import parse_qs, urlparse
 sys.path.insert(0, str(Path(__file__).resolve().parent / "bin"))
 
 from sx import graph, layout  # noqa: E402
+from sx import usage as skill_usage  # noqa: E402
 from sx.layout import LayoutError  # noqa: E402
 from sx.state import StudioPaths, running  # noqa: E402
 from sx.tasks import TaskError, in_flight, submit  # noqa: E402
@@ -49,7 +50,7 @@ def live_graph(project, home):
     return current
 
 
-def make_handler(project, home, token, port):
+def make_handler(project, home, token, port, usage):
     paths = StudioPaths(project)
     allowed_hosts = {f"127.0.0.1:{port}", f"localhost:{port}"}
     current_graph = live_graph(project, home)
@@ -107,6 +108,8 @@ def make_handler(project, home, token, port):
                 return self._json(200, _latest_analysis(paths))
             if url.path == "/layout":
                 return self._json(200, layout.read(paths))
+            if url.path == "/usage":
+                return self._json(200, _usage_view(usage, current_graph()["skills"]))
             if url.path == "/tasks":
                 return self._json(200, {"tasks": [{k: v for k, v in t.items() if k not in ("before", "after")}
                                                   for t in in_flight(paths)]})
@@ -127,7 +130,7 @@ def make_handler(project, home, token, port):
             if origin and urlparse(origin).netloc not in allowed_hosts:
                 return self._json(403, {"error": "cross-origin request refused"})
             route = urlparse(self.path).path
-            if route not in ("/task", "/layout", "/close"):
+            if route not in ("/task", "/layout", "/close", "/usage"):
                 return self._json(404, {"error": "not found"})
             if not (self.headers.get("Content-Type") or "").startswith("application/json"):
                 return self._json(415, {"error": "expected application/json"})
@@ -140,6 +143,9 @@ def make_handler(project, home, token, port):
                     return self._json(200, layout.write(paths, raw))
                 if route == "/close":
                     return self._close()
+                if route == "/usage":
+                    usage.refresh()
+                    return self._json(202, _usage_view(usage, current_graph()["skills"]))
                 task = submit(paths, raw, current_graph(fresh=True)["skills"])
             except json.JSONDecodeError:
                 return self._json(400, {"error": "invalid JSON"})
@@ -164,6 +170,12 @@ def _without_body(skill):
     return {k: v for k, v in skill.items() if k != "body"}
 
 
+def _usage_view(usage, skills):
+    state = usage.state()
+    return {"status": state["status"], "fetched_at": state["fetched_at"], "error": state["error"],
+            "skills": skill_usage.match(state["rows"], skills)}
+
+
 def _latest_analysis(paths):
     found = sorted(paths.analysis.glob("*.json")) if paths.analysis.is_dir() else []
     for path in reversed(found):
@@ -174,11 +186,14 @@ def _latest_analysis(paths):
     return {"suggestions": []}
 
 
-def serve(project, home, port=0, token=None):
+def serve(project, home, port=0, token=None, usage=None):
+    """The server, not yet serving. `usage` fetches only when asked; run() asks once at start."""
     token = token or secrets.token_urlsafe(24)
+    usage = usage or skill_usage.Usage(skill_usage.report_from_claude(Path(project)))
     httpd = ThreadingHTTPServer(("127.0.0.1", port), None)
     bound = httpd.server_address[1]
-    httpd.RequestHandlerClass = make_handler(Path(project), Path(home), token, bound)
+    httpd.RequestHandlerClass = make_handler(Path(project), Path(home), token, bound, usage)
+    httpd.usage = usage
     return httpd, token, bound
 
 
@@ -192,6 +207,7 @@ def run(project, home, port=0):
         print(f"Already running (pid {existing['pid']}); not starting another.", flush=True)
         return existing
     httpd, token, port = serve(project, home, port)
+    httpd.usage.refresh()
     url = f"http://127.0.0.1:{port}/?token={token}"
     paths.ensure()
     paths.server.write_text(json.dumps({

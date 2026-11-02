@@ -56,6 +56,8 @@ backticks (`` `commit` ``). Never add frontmatter fields to record links.
 | `unlink` | `from`, `to` | Remove every mention of `to` from `from`'s body, keeping the steps whole. If `to` did real work there, say what is lost. | No — apply, show the diff |
 | `edit` | `skill`, `field`, `value` | `description`: replace it. `name`: change the frontmatter name, rename the skill's folder to match, and update every project skill that names it. | Only for `name`, listing what it touches |
 | `change` | `skill`, `text` | Do what `text` asks. Splitting a skill: the extracted part becomes a skill of its own that can also be used alone; the parent calls it by name at each place the part was. | Yes — propose, then apply on their yes |
+| `improve` | `skill`, `focus` | Improve the skill with a skill-creator skill (`anthropic-skills:skill-creator`, or the `skill-creator` plugin's), aimed at `focus` when it is given — otherwise at what the skill most needs. None in scope: say so and file it `declined`. | Yes — propose, then apply on their yes |
+| `delete` | `skill` | Delete the skill's folder. First list every skill that names it (`S graph`, wires to it) and ask whether to remove those mentions too or leave them as broken wires. | Yes — always, naming the callers |
 | `new` | `name`, `description`, `intent` | Write `.claude/skills/<name>/SKILL.md` with the developer, using a skill-creator skill when one is available. | Yes |
 | `copy` | `source`, `name` | `S copy <source> <name>`, then `S check --text` and show the findings for the copy — personal content above all, since it lands in a shared repository. | No |
 | `analyse` | — | Not built yet: say so and file it `declined`. | — |

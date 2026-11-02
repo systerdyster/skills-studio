@@ -12,6 +12,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import server  # noqa: E402
+from sx.usage import Usage  # noqa: E402
+
+USAGE_REPORT = """
+  skill                 source           context  7d tokens   uses  last used
+  close-feature         projectSettings     ~150       3.6m    61×  6 days
+"""
 
 
 def write_skill(root, name, body="# Body\n", description="Does the thing it is named for, when asked."):
@@ -29,7 +35,8 @@ class ServerTest(unittest.TestCase):
         write_skill(skills, "close-feature", "Run `git-finish`, then `wiki-sync` skill.\n")
         write_skill(skills, "git-finish", description="Merge the branch and remove it once the case is approved.")
         write_skill(self.home / ".claude" / "skills", "brain-tdd", description="Drive a change test-first, red green blue.")
-        self.httpd, self.token, self.port = server.serve(self.project, self.home)
+        self.usage = Usage(lambda: USAGE_REPORT)
+        self.httpd, self.token, self.port = server.serve(self.project, self.home, usage=self.usage)
         self.httpd_stopped = threading.Event()
 
         def serve():
@@ -86,6 +93,16 @@ class ServerTest(unittest.TestCase):
         self.assertIn("wire-broken", {f["check"] for f in graph["findings"]})
         self.assertIn({"entry": ["close-feature"], "skills": ["close-feature", "git-finish"]}, graph["flows"])
         self.assertNotIn("body", graph["skills"][0])
+
+    def test_usage_is_fetched_only_when_asked(self):
+        status, before = self.request("GET", "/usage")
+        self.assertEqual((status, before["status"], before["skills"]), (200, "idle", {}))
+        status, _ = self.request("POST", "/usage", {})
+        self.assertEqual(status, 202)
+        self.usage.wait(5)
+        _, after = self.request("GET", "/usage")
+        self.assertEqual(after["status"], "ready")
+        self.assertEqual(after["skills"]["close-feature"]["uses"], 61)
 
     def test_one_skill_with_its_body(self):
         status, skill = self.request("GET", "/skill?id=close-feature")

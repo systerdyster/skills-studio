@@ -20,6 +20,8 @@ KINDS = {
     "unlink": {"from": "writable", "to": "any"},
     "edit": {"skill": "writable", "field": "field", "value": "text"},
     "change": {"skill": "writable", "text": "text"},
+    "improve": {"skill": "writable", "focus": "text"},
+    "delete": {"skill": "writable"},
     "new": {"name": "free", "description": "text", "intent": "text"},
     "copy": {"source": "any", "name": "free"},
     "analyse": {},
@@ -81,7 +83,8 @@ def submit(paths, raw, skills):
 
 OUTCOMES = ("done", "declined", "failed")
 TASK_ID = re.compile(r"^[0-9TZ]+-[a-z]+-[0-9a-f]+$")
-TARGET_FIELD = {"link": "from", "unlink": "from", "edit": "skill", "change": "skill"}
+TARGET_FIELD = {"link": "from", "unlink": "from", "edit": "skill", "change": "skill", "improve": "skill",
+                "delete": "skill"}
 
 
 def pending(paths):

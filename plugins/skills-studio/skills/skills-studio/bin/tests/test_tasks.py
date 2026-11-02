@@ -50,6 +50,19 @@ class ValidateTest(unittest.TestCase):
         with self.assertRaisesRegex(TaskError, "field"):
             validate({"kind": "edit", "skill": "git-finish", "field": "license", "value": "x"}, SKILLS)
 
+    def test_improve_a_project_skill_with_or_without_a_focus(self):
+        self.assertEqual(validate({"kind": "improve", "skill": "git-finish", "focus": ""}, SKILLS)["focus"], "")
+        validate({"kind": "improve", "skill": "git-finish", "focus": "Make the description trigger."}, SKILLS)
+
+    def test_improve_of_a_user_skill_is_refused(self):
+        with self.assertRaisesRegex(TaskError, "read-only"):
+            validate({"kind": "improve", "skill": "brain-tdd", "focus": ""}, SKILLS)
+
+    def test_delete_only_a_project_skill(self):
+        validate({"kind": "delete", "skill": "git-finish"}, SKILLS)
+        with self.assertRaisesRegex(TaskError, "read-only"):
+            validate({"kind": "delete", "skill": "atlassian:triage-issue"}, SKILLS)
+
     def test_change_in_words(self):
         validate({"kind": "change", "skill": "close-feature", "text": "Extract the git handling."}, SKILLS)
 
@@ -74,7 +87,7 @@ class ValidateTest(unittest.TestCase):
 
     def test_unknown_kind_is_refused(self):
         with self.assertRaisesRegex(TaskError, "kind"):
-            validate({"kind": "delete", "skill": "git-finish"}, SKILLS)
+            validate({"kind": "rewrite", "skill": "git-finish"}, SKILLS)
 
     def test_missing_field_is_refused(self):
         with self.assertRaisesRegex(TaskError, "to"):
