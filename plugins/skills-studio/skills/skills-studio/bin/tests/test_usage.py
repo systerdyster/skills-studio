@@ -14,7 +14,7 @@ REPORT = """Skills loaded this session
   anthropic-skills:xlsx                       claude.ai sync      < 20          -     0×  never
   jira-review                                 projectSettings     ~120          -    53×  19 days
   build-feature                               projectSettings     ~200       5.8m    54×  6 days
-  brain-grill-me                              userSettings        ~290     236.1k     3×  today
+  my-grill-me                              userSettings        ~290     236.1k     3×  today
 
   context = this skill's one-line listing in the system prompt, included every turn
 8 skills loaded but never invoked. Each one adds to the system prompt every turn.
@@ -25,7 +25,7 @@ class ParseTest(unittest.TestCase):
     def test_reads_every_row(self):
         rows = parse(REPORT)
         self.assertEqual(list(rows), ["add-component", "anthropic-skills:xlsx", "jira-review",
-                                      "build-feature", "brain-grill-me"])
+                                      "build-feature", "my-grill-me"])
 
     def test_reads_the_columns(self):
         self.assertEqual(parse(REPORT)["build-feature"],

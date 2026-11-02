@@ -26,18 +26,18 @@ class WireTest(unittest.TestCase):
         self.assertFalse(result[("close-feature", "git-finish")]["broken"])
 
     def test_awkward_mention_is_still_a_wire(self):
-        body = "This is not the same as brain-code-review; do not run it here."
-        self.assertIn(("close-feature", "brain-code-review"),
-                      found([s("close-feature", body), s("brain-code-review")]))
+        body = "This is not the same as my-code-review; do not run it here."
+        self.assertIn(("close-feature", "my-code-review"),
+                      found([s("close-feature", body), s("my-code-review")]))
 
     def test_a_name_inside_a_longer_name_is_not_a_mention(self):
         result = found([
-            s("brain-code-review", "Run brain-review-security."),
-            s("brain-review"),
-            s("brain-review-security"),
+            s("my-code-review", "Run my-review-security."),
+            s("my-review"),
+            s("my-review-security"),
         ])
-        self.assertIn(("brain-code-review", "brain-review-security"), result)
-        self.assertNotIn(("brain-code-review", "brain-review"), result)
+        self.assertIn(("my-code-review", "my-review-security"), result)
+        self.assertNotIn(("my-code-review", "my-review"), result)
 
 
 class QualifiedNameTest(unittest.TestCase):
@@ -70,9 +70,9 @@ class QualifiedNameTest(unittest.TestCase):
         self.assertEqual(found([mine, spec]), {})
 
     def test_wire_from_a_plugin_skill_names_it_qualified(self):
-        source = s("factory", "Then run brain-review-security.", source="plugin", plugin="factory")
-        self.assertIn(("factory:factory", "brain-review-security"),
-                      found([source, s("brain-review-security", source="user")]))
+        source = s("factory", "Then run my-review-security.", source="plugin", plugin="factory")
+        self.assertIn(("factory:factory", "my-review-security"),
+                      found([source, s("my-review-security", source="user")]))
 
     def test_a_project_skill_is_not_matched_inside_a_qualified_name(self):
         result = found([
@@ -97,7 +97,7 @@ class OneWordNameTest(unittest.TestCase):
         self.assertEqual(found([s("a", "See src/commit/index.ts"), s("commit")]), {})
 
     def test_self_mention_is_ignored(self):
-        self.assertEqual(found([s("brain-tdd", "brain-tdd drives red, green, blue.")]), {})
+        self.assertEqual(found([s("my-tdd", "my-tdd drives red, green, blue.")]), {})
 
     def test_mentions_in_the_frontmatter_do_not_count(self):
         skill = {"name": "child", "body": "", "frontmatter": {"description": "see parent"}}

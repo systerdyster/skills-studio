@@ -109,27 +109,32 @@ class OverlapTest(unittest.TestCase):
 
 
 class CopyTest(unittest.TestCase):
-    def test_personal_content_in_a_copy(self):
-        copy = s("tdd-team", body="Read ~/Brain/core/MEMORY.md first.",
-                 metadata={"copied_from": "brain-tdd", "copied_hash": "x"})
-        self.assertIn(("tdd-team", "copy-personal"), found([copy]))
+    def test_a_path_into_the_home_folder_in_a_copy_is_personal(self):
+        for body in ("Read ~/notes/rules.md first.", "See /Users/someone/notes.", "See /home/someone/notes."):
+            copy = s("tdd-team", body=body, metadata={"copied_from": "my-tdd", "copied_hash": "x"})
+            self.assertIn(("tdd-team", "copy-personal"), found([copy]), body)
+
+    def test_a_path_inside_the_project_is_not_personal(self):
+        copy = s("tdd-team", body="See ./docs/rules.md and PROJECT-RULES.md.",
+                 metadata={"copied_from": "my-tdd", "copied_hash": "x"})
+        self.assertNotIn(("tdd-team", "copy-personal"), found([copy]))
 
     def test_personal_content_outside_a_copy_is_not_flagged(self):
-        self.assertEqual(found([s("own", body="Read ~/Brain/core/MEMORY.md first.")]), set())
+        self.assertEqual(found([s("own", body="Read ~/notes/rules.md first.")]), set())
 
     def test_source_changed_since_copy(self):
-        copy = s("tdd-team", metadata={"copied_from": "brain-tdd", "copied_hash": content_hash("old")})
-        source = s("brain-tdd", source="user")
-        result = found([copy, source], sources={"brain-tdd": "new text"})
+        copy = s("tdd-team", metadata={"copied_from": "my-tdd", "copied_hash": content_hash("old")})
+        source = s("my-tdd", source="user")
+        result = found([copy, source], sources={"my-tdd": "new text"})
         self.assertIn(("tdd-team", "copy-source-changed"), result)
 
     def test_source_unchanged_since_copy(self):
-        copy = s("tdd-team", metadata={"copied_from": "brain-tdd", "copied_hash": content_hash("same")})
-        result = found([copy, s("brain-tdd", source="user")], sources={"brain-tdd": "same"})
+        copy = s("tdd-team", metadata={"copied_from": "my-tdd", "copied_hash": content_hash("same")})
+        result = found([copy, s("my-tdd", source="user")], sources={"my-tdd": "same"})
         self.assertEqual(result, set())
 
     def test_source_gone(self):
-        copy = s("tdd-team", metadata={"copied_from": "brain-tdd", "copied_hash": "x"})
+        copy = s("tdd-team", metadata={"copied_from": "my-tdd", "copied_hash": "x"})
         self.assertIn(("tdd-team", "copy-source-gone"), found([copy]))
 
     def test_content_hash_is_short_sha256(self):

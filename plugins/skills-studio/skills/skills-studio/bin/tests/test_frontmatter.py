@@ -28,7 +28,7 @@ class SplitTest(unittest.TestCase):
 
 class ScalarTest(unittest.TestCase):
     def test_plain_scalar(self):
-        self.assertEqual(parse(doc("name: brain-tdd"))[0], {"name": "brain-tdd"})
+        self.assertEqual(parse(doc("name: my-tdd"))[0], {"name": "my-tdd"})
 
     def test_double_quoted_keeps_colons_and_dashes(self):
         fm, _ = parse(doc('description: "Use when: the user says \'TDD\' — or not."'))

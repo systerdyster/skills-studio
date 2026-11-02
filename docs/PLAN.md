@@ -52,13 +52,13 @@ folder.
 `skills-cli graph` adds wires: A → B for every whole-word mention of B's name in A's body; a
 mention of a name not in scope is a broken wire. Order is the position of the first mention.
 **Done:** tests cover a plain call, an awkward mention (still a wire), a name that is a substring of
-another (`brain-review` vs `brain-review-security`), a missing target (broken), a self-mention
-(ignored). Against this machine, `brain-code-review` wires to the four `brain-review-*` skills.
+another (`my-review` vs `my-review-security`), a missing target (broken), a self-mention
+(ignored).
 
 ### 4. Local checks
 `skills-cli check`: missing/broken frontmatter, missing `name`/`description`, broken wires,
 duplicate names across sources, description too long/short, trigger overlap by word similarity,
-personal content in a copy (`~/Brain`, vault pointers), `copied_from` source changed since copy.
+personal content in a copy (paths into the user's home folder), `copied_from` source changed since copy.
 Thresholds live in one place, named.
 **Done:** one test per check, firing and not firing.
 

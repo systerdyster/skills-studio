@@ -34,7 +34,7 @@ class ServerTest(unittest.TestCase):
         skills = self.project / ".claude" / "skills"
         write_skill(skills, "close-feature", "Run `git-finish`, then `wiki-sync` skill.\n")
         write_skill(skills, "git-finish", description="Merge the branch and remove it once the case is approved.")
-        write_skill(self.home / ".claude" / "skills", "brain-tdd", description="Drive a change test-first, red green blue.")
+        write_skill(self.home / ".claude" / "skills", "my-tdd", description="Drive a change test-first, red green blue.")
         self.usage = Usage(lambda: USAGE_REPORT)
         self.httpd, self.token, self.port = server.serve(self.project, self.home, usage=self.usage)
         self.httpd_stopped = threading.Event()
@@ -87,7 +87,7 @@ class ServerTest(unittest.TestCase):
     def test_graph_holds_skills_wires_and_findings(self):
         status, graph = self.request("GET", "/graph")
         self.assertEqual(status, 200)
-        self.assertEqual({s["id"] for s in graph["skills"]}, {"close-feature", "git-finish", "brain-tdd"})
+        self.assertEqual({s["id"] for s in graph["skills"]}, {"close-feature", "git-finish", "my-tdd"})
         self.assertIn({"from": "close-feature", "to": "git-finish"},
                       [{"from": w["from"], "to": w["to"]} for w in graph["wires"]])
         self.assertIn("wire-broken", {f["check"] for f in graph["findings"]})
@@ -110,12 +110,12 @@ class ServerTest(unittest.TestCase):
         self.assertIn("git-finish", skill["body"])
 
     def test_valid_task_lands_in_inbox(self):
-        status, task = self.request("POST", "/task", {"kind": "link", "from": "close-feature", "to": "brain-tdd"})
+        status, task = self.request("POST", "/task", {"kind": "link", "from": "close-feature", "to": "my-tdd"})
         self.assertEqual(status, 202)
         self.assertEqual([p.stem for p in self.inbox()], [task["id"]])
 
     def test_task_naming_a_user_skill_as_target_is_refused(self):
-        status, reply = self.request("POST", "/task", {"kind": "change", "skill": "brain-tdd", "text": "x"})
+        status, reply = self.request("POST", "/task", {"kind": "change", "skill": "my-tdd", "text": "x"})
         self.assertEqual(status, 400)
         self.assertIn("read-only", reply["error"])
         self.assertEqual(self.inbox(), [])
@@ -138,7 +138,7 @@ class ServerTest(unittest.TestCase):
         self.assertEqual(self.inbox(), [])
 
     def test_tasks_in_flight_are_listed(self):
-        _, task = self.request("POST", "/task", {"kind": "link", "from": "close-feature", "to": "brain-tdd"})
+        _, task = self.request("POST", "/task", {"kind": "link", "from": "close-feature", "to": "my-tdd"})
         status, listed = self.request("GET", "/tasks")
         self.assertEqual(status, 200)
         self.assertEqual([(t["id"], t["state"]) for t in listed["tasks"]], [(task["id"], "waiting")])

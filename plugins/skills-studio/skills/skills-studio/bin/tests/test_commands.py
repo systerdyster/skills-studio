@@ -25,7 +25,7 @@ class CommandTest(unittest.TestCase):
         self.project, self.home = root / "project", root / "home"
         self.close = write_skill(self.project / ".claude" / "skills", "close-feature")
         write_skill(self.project / ".claude" / "skills", "git-finish")
-        write_skill(self.home / ".claude" / "skills", "brain-tdd")
+        write_skill(self.home / ".claude" / "skills", "my-tdd")
         self.paths = StudioPaths(self.project)
 
     def tearDown(self):
@@ -94,7 +94,7 @@ class CommandTest(unittest.TestCase):
 
     def test_kinds_save_refuses_a_bad_judgement(self):
         judged = Path(self.tmp.name) / "kinds.json"
-        judged.write_text(json.dumps({"brain-tdd": {"fingerprint": "x", "wires": {}}}))
+        judged.write_text(json.dumps({"my-tdd": {"fingerprint": "x", "wires": {}}}))
         code, out = self.run_cli("kinds", "save", str(judged))
         self.assertEqual(code, 1)
         self.assertIn("project", out["error"])
@@ -103,13 +103,13 @@ class CommandTest(unittest.TestCase):
         self.assertEqual(self.run_cli("stop"), (0, {"stopped": False}))
 
     def test_copy_makes_the_project_skill(self):
-        code, made = self.run_cli("copy", "brain-tdd", "tdd-team")
+        code, made = self.run_cli("copy", "my-tdd", "tdd-team")
         self.assertEqual(code, 0)
         self.assertTrue(Path(made["path"]).exists())
-        self.assertIn("copied_from: brain-tdd", Path(made["path"]).read_text())
+        self.assertIn("copied_from: my-tdd", Path(made["path"]).read_text())
 
     def test_copy_refuses_a_taken_name(self):
-        code, reply = self.run_cli("copy", "brain-tdd", "git-finish")
+        code, reply = self.run_cli("copy", "my-tdd", "git-finish")
         self.assertEqual(code, 1)
         self.assertIn("taken", reply["error"])
 

@@ -8,7 +8,7 @@ import re
 DESCRIPTION_MAX = 1024        # the Agent Skills limit on a description
 DESCRIPTION_MIN = 40          # shorter than this rarely says when to use the skill
 OVERLAP_THRESHOLD = 0.25      # Jaccard of description words; tuned on real skills, 2026-11-02
-PERSONAL_MARKERS = re.compile(r"~/Brain\b|/Brain/|/Users/[^/\s]+|/home/[^/\s]+")
+PERSONAL_MARKERS = re.compile(r"(?<![\w.~])~/[^\s`'\")]*|/Users/[^/\s`'\")]+|/home/[^/\s`'\")]+")  # the user's home
 STOP_WORDS = frozenset(
     "the and for with that this when use user asks or a an to of in on is are be it its as by from "
     "any not only one into their them they what which who will can your you does do also like says "

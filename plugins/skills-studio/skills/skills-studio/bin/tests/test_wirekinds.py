@@ -13,18 +13,18 @@ from sx.wirekinds import KindsError, apply, fingerprint, pending, save
 TEXTS = {
     "commit": "---\nname: commit\n---\nSee `code-review`.\n",
     "tdd": "---\nname: tdd\n---\nThen use `commit`.\n",
-    "brain-tdd": "---\nname: brain-tdd\n---\nUse `commit`.\n",
+    "my-tdd": "---\nname: my-tdd\n---\nUse `commit`.\n",
 }
 SKILLS = [
     {"id": "commit", "source": "project", "path": "commit/SKILL.md"},
     {"id": "tdd", "source": "project", "path": "tdd/SKILL.md"},
     {"id": "code-review", "source": "project", "path": "code-review/SKILL.md"},
-    {"id": "brain-tdd", "source": "user", "path": "brain-tdd/SKILL.md"},
+    {"id": "my-tdd", "source": "user", "path": "my-tdd/SKILL.md"},
 ]
 WIRES = [
     {"from": "commit", "to": "code-review", "lines": [4], "broken": False},
     {"from": "tdd", "to": "commit", "lines": [4], "broken": False},
-    {"from": "brain-tdd", "to": "commit", "lines": [4], "broken": False},
+    {"from": "my-tdd", "to": "commit", "lines": [4], "broken": False},
     {"from": "tdd", "to": "gone", "lines": [4], "broken": True},
 ]
 
@@ -93,7 +93,7 @@ class SaveTest(unittest.TestCase):
 
     def test_only_project_skills(self):
         with self.assertRaisesRegex(KindsError, "project"):
-            save(self.paths, {"brain-tdd": judged("brain-tdd", commit="call")}, SKILLS, WIRES, TEXTS)
+            save(self.paths, {"my-tdd": judged("my-tdd", commit="call")}, SKILLS, WIRES, TEXTS)
 
     def test_an_unreadable_file_reads_as_nothing_judged(self):
         self.paths.ensure()

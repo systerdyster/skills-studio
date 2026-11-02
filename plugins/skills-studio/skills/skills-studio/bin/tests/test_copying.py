@@ -18,7 +18,7 @@ class CopyTest(unittest.TestCase):
         self.vault = root / "vault" / "tdd"
         self.vault.mkdir(parents=True)
         (self.vault / "reference.md").write_text("extra")
-        self.link = root / "home" / "brain-tdd"
+        self.link = root / "home" / "my-tdd"
         self.link.parent.mkdir()
         os.symlink(self.vault, self.link)
         self.project_skills = root / "project" / ".claude" / "skills"
@@ -28,33 +28,33 @@ class CopyTest(unittest.TestCase):
 
     def source(self, text):
         (self.vault / "SKILL.md").write_text(text)
-        return {"id": "brain-tdd", "name": "brain-tdd", "path": str(self.link / "SKILL.md")}
+        return {"id": "my-tdd", "name": "my-tdd", "path": str(self.link / "SKILL.md")}
 
     def test_copy_renames_and_records_its_origin(self):
-        text = '---\nname: brain-tdd\ndescription: "Test first."\n---\n# Body\n'
+        text = '---\nname: my-tdd\ndescription: "Test first."\n---\n# Body\n'
         made = copy_skill(self.project_skills, self.source(text), "tdd-team")
         frontmatter, body = parse(made.read_text())
         self.assertEqual(made, self.project_skills / "tdd-team" / "SKILL.md")
         self.assertEqual(frontmatter["name"], "tdd-team")
         self.assertEqual(frontmatter["description"], "Test first.")
-        self.assertEqual(frontmatter["metadata"], {"copied_from": "brain-tdd", "copied_hash": content_hash(text)})
+        self.assertEqual(frontmatter["metadata"], {"copied_from": "my-tdd", "copied_hash": content_hash(text)})
         self.assertEqual(body, "# Body\n")
 
     def test_existing_metadata_block_is_extended(self):
-        text = "---\nname: brain-tdd\ndescription: x y z\nmetadata:\n  type: reference\nlicense: MIT\n---\nbody\n"
+        text = "---\nname: my-tdd\ndescription: x y z\nmetadata:\n  type: reference\nlicense: MIT\n---\nbody\n"
         made = copy_skill(self.project_skills, self.source(text), "tdd-team")
         frontmatter, _ = parse(made.read_text())
         self.assertEqual(frontmatter["metadata"]["type"], "reference")
-        self.assertEqual(frontmatter["metadata"]["copied_from"], "brain-tdd")
+        self.assertEqual(frontmatter["metadata"]["copied_from"], "my-tdd")
         self.assertEqual(frontmatter["license"], "MIT")
 
     def test_supporting_files_come_along_and_links_are_resolved(self):
-        made = copy_skill(self.project_skills, self.source("---\nname: brain-tdd\ndescription: x\n---\n"), "tdd-team")
+        made = copy_skill(self.project_skills, self.source("---\nname: my-tdd\ndescription: x\n---\n"), "tdd-team")
         self.assertEqual((made.parent / "reference.md").read_text(), "extra")
         self.assertFalse(made.parent.is_symlink())
 
     def test_existing_target_is_refused(self):
-        source = self.source("---\nname: brain-tdd\ndescription: x\n---\n")
+        source = self.source("---\nname: my-tdd\ndescription: x\n---\n")
         copy_skill(self.project_skills, source, "tdd-team")
         with self.assertRaises(CopyError):
             copy_skill(self.project_skills, source, "tdd-team")

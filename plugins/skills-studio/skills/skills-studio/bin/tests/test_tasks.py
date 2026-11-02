@@ -18,7 +18,7 @@ def sk(name, source="project", plugin=None):
     return skill
 
 
-SKILLS = [sk("close-feature"), sk("git-finish"), sk("brain-tdd", "user"),
+SKILLS = [sk("close-feature"), sk("git-finish"), sk("my-tdd", "user"),
           sk("triage-issue", "plugin", "atlassian")]
 
 
@@ -32,7 +32,7 @@ class ValidateTest(unittest.TestCase):
 
     def test_link_from_a_user_skill_is_refused(self):
         with self.assertRaisesRegex(TaskError, "read-only"):
-            validate({"kind": "link", "from": "brain-tdd", "to": "git-finish"}, SKILLS)
+            validate({"kind": "link", "from": "my-tdd", "to": "git-finish"}, SKILLS)
 
     def test_link_to_an_unknown_skill_is_refused(self):
         with self.assertRaisesRegex(TaskError, "no skill"):
@@ -56,7 +56,7 @@ class ValidateTest(unittest.TestCase):
 
     def test_improve_of_a_user_skill_is_refused(self):
         with self.assertRaisesRegex(TaskError, "read-only"):
-            validate({"kind": "improve", "skill": "brain-tdd", "focus": ""}, SKILLS)
+            validate({"kind": "improve", "skill": "my-tdd", "focus": ""}, SKILLS)
 
     def test_save_keeps_the_whole_text(self):
         body = "# Git finish\n\n" + "Merge it. " * 1000
@@ -79,7 +79,7 @@ class ValidateTest(unittest.TestCase):
 
     def test_save_of_a_user_skill_is_refused(self):
         with self.assertRaisesRegex(TaskError, "read-only"):
-            validate({"kind": "save", "skill": "brain-tdd", "name": "brain-tdd", "description": "", "body": ""}, SKILLS)
+            validate({"kind": "save", "skill": "my-tdd", "name": "my-tdd", "description": "", "body": ""}, SKILLS)
 
     def test_delete_only_a_project_skill(self):
         validate({"kind": "delete", "skill": "git-finish"}, SKILLS)
@@ -97,9 +97,9 @@ class ValidateTest(unittest.TestCase):
             validate({"kind": "new", "name": "Git Finish", "description": "x", "intent": ""}, SKILLS)
 
     def test_copy_needs_a_new_name(self):
-        validate({"kind": "copy", "source": "brain-tdd", "name": "tdd-team"}, SKILLS)
+        validate({"kind": "copy", "source": "my-tdd", "name": "tdd-team"}, SKILLS)
         with self.assertRaisesRegex(TaskError, "taken"):
-            validate({"kind": "copy", "source": "brain-tdd", "name": "brain-tdd"}, SKILLS)
+            validate({"kind": "copy", "source": "my-tdd", "name": "my-tdd"}, SKILLS)
 
     def test_copy_of_an_unknown_skill_is_refused(self):
         with self.assertRaisesRegex(TaskError, "no skill"):

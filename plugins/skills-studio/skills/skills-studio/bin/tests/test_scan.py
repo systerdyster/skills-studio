@@ -58,11 +58,11 @@ class ScanTest(unittest.TestCase):
         self.assertEqual(self.run_scan()["bare"]["body_line"], 1)
 
     def test_symlinked_user_skill_is_named_by_its_frontmatter_not_its_folder(self):
-        real = skill(self.vault, "code-review", fm("brain-code-review"))
-        os.symlink(real.parent, self.user_skills / "brain-code-review-link")
-        found = self.run_scan()["brain-code-review"]
+        real = skill(self.vault, "code-review", fm("my-code-review"))
+        os.symlink(real.parent, self.user_skills / "my-code-review-link")
+        found = self.run_scan()["my-code-review"]
         self.assertEqual(found["source"], "user")
-        self.assertEqual(found["folder"], "brain-code-review-link")
+        self.assertEqual(found["folder"], "my-code-review-link")
         self.assertEqual(found["real_path"], str(real.resolve()))
         self.assertFalse(found["writable"])
 

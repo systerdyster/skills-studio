@@ -17,8 +17,7 @@ wires, then rebuilt as nested cards the same day — see *Views*.
 
 ## Non-goals (v1)
 
-- Writing outside the project. User skills (`~/.claude/skills`, which point into the Brain vault) and
-  plugin skills are never written.
+- Writing outside the project. User skills (`~/.claude/skills`) and plugin skills are never written.
 - An automated behaviour-test harness (scripted gate answers, sandbox repo, stubbed tracker and wiki,
   N runs per version). Verification in v1 is manual; the harness may become its own project.
 - Rendering in the terminal. The studio is started from the CLI and works in a browser.
@@ -80,8 +79,8 @@ A user or plugin skill can be **copied into the project as a template**. The cop
 - must take a new name, so both exist side by side and nothing is shadowed;
 - records its origin in `metadata.copied_from`, so the studio can show that the source has changed
   since the copy was taken (it never syncs automatically);
-- is checked for personal content (paths into `~/Brain`, vault pointers, wording addressed to one
-  person), since it lands in a repository the team shares.
+- is checked for personal content (paths into the user's home folder: `~/…`, `/Users/<name>`,
+  `/home/<name>`), since it lands in a repository the team shares.
 
 ## Link model
 
@@ -89,12 +88,12 @@ A user or plugin skill can be **copied into the project as a template**. The cop
 studio state: what a parent runs is what its body says, so a second record would only drift from it.
 
 - A **wire** A → B is drawn wherever A's body names B **by the name Claude knows it by**. Every
-  such mention counts, including awkward ones ("unlike `brain-code-review`…"); a surprising wire is
+  such mention counts, including awkward ones ("unlike `my-code-review`…"); a surprising wire is
   a prompt to fix the text, not something to hide. What counts as naming B:
   - a plugin skill: its qualified name, `atlassian:triage-issue`; a synced skill:
     `anthropic-skills:docs`. "Write some docs" is just words. Skills of one plugin may also name
     each other by their bare name;
-  - a project or user skill: its name as a whole word (`brain-grill-me`); a one-word name
+  - a project or user skill: its name as a whole word (`my-grill-me`); a one-word name
     (`commit`, `tdd`) only in backticks or as `/commit`, since as a plain word it is just a word.
 - A wire to a name that is not in scope is **broken** (red).
 - A wire is a **call** or a **mention**. A call: following A makes Claude run B, as a step, a
