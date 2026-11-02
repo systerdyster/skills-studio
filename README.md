@@ -16,6 +16,7 @@ The studio is there to make that visible and cheap to fix.
   numbers come from Claude Code's own `/skill-doctor` report.
 - **Findings.** Local checks flag what needs a look: missing or broken frontmatter, a description too
   long or too short, duplicate names, triggers that overlap, references to skills that do not exist.
+  What only a reading can tell comes from Analyse (below) and is listed under the cards.
 - **The skill itself.** Opening a card shows the whole `SKILL.md` on one page, in two parts:
   - *Every turn* — the frontmatter Claude reads in every session to decide when to use the skill,
     with what it costs and the description's length against the 1024-character limit;
@@ -31,6 +32,23 @@ pointer for the developer. Only calls nest a card inside another.
 Telling the two apart is a judgement, so the studio does not guess: **Analyse** asks the Claude
 session to judge every reference and keeps the verdict per skill, together with a fingerprint of its
 text. When a skill's text changes, its references are judged again. Until then they count as calls.
+
+## Analyse
+
+**Analyse** has the Claude session read all the project's skills. Besides judging calls and
+mentions, it records what the local checks cannot see:
+
+| Finding | What it means |
+|---|---|
+| **Disagree** | Two skills contradict each other about how they work together — say, one claims the other runs it first, and the other doesn't. |
+| **Dead reference** | A skill names one that does not exist, or by a name Claude doesn't know it by. |
+| **Badly written** | Steps that can't be followed, rules that clash, a body far longer than its job. |
+| **Procedure in description** | The description spends its every-turn tokens on how the skill works instead of when to use it. |
+| **Unused** | Never or rarely used, with a likely reason — such as triggers that overlap another skill's. |
+
+They are listed under the cards, worst first, and on each skill they concern. Each is kept with a
+fingerprint of every skill involved, so it disappears by itself once one of those texts changes — a
+fixed problem never lingers. Analyse never fixes anything; the findings are for you.
 
 ## Changing skills
 
@@ -75,8 +93,8 @@ The session takes a lease (one studio per project), starts the server on `127.0.
 token, opens the page and watches for tasks. Keep talking to the session as usual in between. *Close
 studio* on the page, or saying you are done, stops it.
 
-The studio keeps its state in `.skills-studio/` in the project — tasks, the call/mention verdicts, the
-lease — and that folder ignores itself in git, so the project's `.gitignore` is never touched.
+The studio keeps its state in `.skills-studio/` in the project — tasks, the call/mention verdicts,
+Analyse's findings, the lease — and that folder ignores itself in git, so the project's `.gitignore` is never touched.
 
 ## How it is built
 
@@ -89,7 +107,7 @@ plugins/skills-studio/
     SKILL.md                       /skills-studio: start, watch, carry out tasks
     server.py                      127.0.0.1 + token; the page and its JSON API
     studio.html                    the page, no libraries
-    bin/sx/                        scan · frontmatter · wires · checks · flows · usage · tasks · state
+    bin/sx/                        scan · wires · checks · insights · usage · tasks · …
     bin/tests/                     unittest
 docs/DESIGN.md                     why it works the way it does
 ```

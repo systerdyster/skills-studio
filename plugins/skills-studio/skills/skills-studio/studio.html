@@ -126,7 +126,25 @@ aside { background: var(--surface); overflow: auto; min-height: 0; }
 .badge { font-size: 11px; border-radius: 9px; padding: 0 6px; border: 1px solid currentColor; white-space: nowrap; }
 .badge.error { color: var(--error); } .badge.warning { color: var(--warning); } .badge.info { color: var(--info); }
 
+#board { display: grid; grid-template-rows: minmax(0, 1fr) auto; min-height: 0; min-width: 0; }
 #cards { overflow: auto; min-height: 0; padding: 16px; columns: 300px; column-gap: 14px; }
+#dock:empty { display: none; }
+.insights { background: var(--surface); border-top: 1px solid var(--line); box-shadow: 0 -6px 18px rgb(0 0 0 / .08);
+            max-height: 38vh; display: grid; grid-template-rows: auto minmax(0, 1fr); }
+.insights-head { display: flex; gap: 10px; align-items: center; padding: 8px 16px; border-left: 4px solid var(--warning);
+                 background: var(--band); cursor: pointer; user-select: none; }
+.insights-head .toggle { margin-left: auto; border: none; background: none; color: var(--muted); padding: 0 4px; }
+.insights.collapsed { grid-template-rows: auto 0; }
+.insights.collapsed ul { display: none; }
+.insights ul { list-style: none; margin: 0; padding: 4px 16px 10px 20px; display: grid; gap: 6px; overflow: auto; }
+.insight { display: grid; grid-template-columns: 170px minmax(140px, auto) 1fr; gap: 4px 12px; align-items: baseline; font-size: 13px;
+           padding: 6px 0; border-top: 1px solid var(--band-edge); }
+.insight:first-child { border-top: none; }
+.insight .kind { font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+.insight.disagreement .kind, .insight.dead-reference .kind, .insight.badly-written .kind { color: var(--warning); }
+.insight.procedure-in-description .kind, .insight.unused .kind { color: var(--info); }
+.insight .who { white-space: nowrap; }
+@media (max-width: 900px) { .insight { grid-template-columns: 1fr; } }
 #cards > .card { break-inside: avoid; margin-bottom: 14px; }
 #empty { color: var(--muted); text-align: center; padding: 48px 24px; column-span: all; }
 
@@ -192,7 +210,10 @@ main.closed .sub { color: var(--muted); }
     <ul id="palette-list"></ul>
     <p class="hint">Each card holds the skills it calls, in order; what it only mentions is listed at its foot. Click a skill to open it.</p>
   </aside>
-  <section id="cards" aria-label="Skills"></section>
+  <div id="board">
+    <section id="cards" aria-label="Skills"></section>
+    <div id="dock"></div>
+  </div>
 </main>
 <dialog id="panel" aria-label="Skill"><div class="body" id="panel-body"></div></dialog>
 <div id="toast" role="status"></div>
@@ -266,7 +287,8 @@ const unjudged = () => state.graph.wires.filter((w) => !w.broken && !w.kind && s
 const pendingFrom = (id) => state.tasks.filter((t) => (t.kind === "link" || t.kind === "unlink") && t.from === id);
 
 function signature(graph) {
-  return JSON.stringify([graph.skills.map((s) => [s.id, s.modified]), graph.wires.map((w) => [w.from, w.to, w.broken, w.kind])]);
+  return JSON.stringify([graph.skills.map((s) => [s.id, s.modified]), graph.wires.map((w) => [w.from, w.to, w.broken, w.kind]),
+    (graph.insights || []).map((i) => [i.kind, i.skills, i.message])]);
 }
 
 // ---- cards ---------------------------------------------------------------------------------
@@ -335,12 +357,49 @@ function card(id, path, shown) {
   return node;
 }
 
+const INSIGHT_LABELS = {
+  "disagreement": "Disagree", "dead-reference": "Dead reference", "badly-written": "Badly written",
+  "procedure-in-description": "Procedure in description", "unused": "Unused",
+};
+const INSIGHT_ORDER = ["disagreement", "dead-reference", "badly-written", "procedure-in-description", "unused"];
+
+// Analyse's findings, docked at the foot of the window: what only a reading could tell, worst first.
+// Each names its skills; clicking one opens it. It folds to one line, and remembers that per viewer.
+// A finding leaves by itself once any of its skills' text changes.
+const DOCK_KEY = "skills-studio:dock-collapsed";
+const dockCollapsed = () => { try { return localStorage.getItem(DOCK_KEY) === "1"; } catch { return false; } };
+
+function insightStrip() {
+  const items = [...(state.graph.insights || [])].sort((a, b) => INSIGHT_ORDER.indexOf(a.kind) - INSIGHT_ORDER.indexOf(b.kind));
+  if (!items.length) return null;
+  const box = el("section", { class: `insights${dockCollapsed() ? " collapsed" : ""}`, "aria-label": "Findings from Analyse" });
+  const toggle = el("button", { class: "toggle", "aria-expanded": String(!dockCollapsed()) }, dockCollapsed() ? "▴ Show" : "▾ Hide");
+  const flip = () => {
+    const collapsed = box.classList.toggle("collapsed");
+    try { localStorage.setItem(DOCK_KEY, collapsed ? "1" : "0"); } catch { /* the page works without it */ }
+    toggle.textContent = collapsed ? "▴ Show" : "▾ Hide";
+    toggle.setAttribute("aria-expanded", String(!collapsed));
+  };
+  box.append(
+    el("div", { class: "insights-head", onclick: flip }, el("strong", {}, "From Analyse"),
+      el("span", { class: "sub" }, `${items.length} finding${items.length === 1 ? "" : "s"} · gone once the text changes`), toggle),
+    el("ul", {}, items.map((item) => el("li", { class: `insight ${item.kind}` },
+      el("span", { class: "kind" }, INSIGHT_LABELS[item.kind] || item.kind),
+      el("span", { class: "who" }, item.skills.flatMap((id, n) => [n ? (item.kind === "disagreement" ? " ↔ " : ", ") : null,
+        el("span", { class: "ref call", onclick: () => openSkill(id),
+          title: item.lines?.[id]?.length ? `line ${item.lines[id].join(", ")}` : id }, id)])),
+      el("span", { class: "what" }, item.message)))));
+  return box;
+}
+
 function drawCards() {
   const shown = new Set();
   const cards = topLevel().map((id) => card(id, [], shown));
   $("cards").replaceChildren(...(cards.length ? cards : [el("div", { id: "empty" },
     el("p", {}, el("strong", {}, "This project has no skills of its own yet.")),
     el("p", {}, "Create one with ", el("em", {}, "New skill"), ", or open a skill in the palette and copy it into the project."))]));
+  const strip = insightStrip();
+  $("dock").replaceChildren(...(strip ? [strip] : []));
 }
 
 // ---- palette -------------------------------------------------------------------------------

@@ -122,11 +122,19 @@ studio state: what a parent runs is what its body says, so a second record would
   call and deleting sit at the foot, each a task.
 - **New skill** — a short form (name, description, intent), then handed to the session to write with
   skill-creator.
-- **Analysis** — the latest suggestions from Analyse, each one a Deploy task the developer can send.
+- **From Analyse** — under the cards, Analyse's findings, worst first, each naming its skills.
 
 ## Analyse
 
-Run on demand only, over all of the project's skills at once (merges need the whole set). It suggests:
+Run on demand only, over all of the project's skills at once (merges need the whole set).
+
+**Built:** it judges every wire a call or a mention, and records **findings** only a reading can make
+— two skills that disagree about how they work together, a dead reference, a badly written skill, a
+description spent on procedure, an unused skill with a likely reason. They are kept in
+`.skills-studio/insights.json` with a fingerprint of every skill concerned, live only while all those
+texts are unchanged, and each run replaces the whole set.
+
+**Not built yet:** suggestions, each one a task the developer can send. It would suggest:
 
 - **Splits** — parts of a skill that are a skill of their own, also when the part is spread across
   sections (the git handling in a close-feature skill sits in four steps and the guardrails).

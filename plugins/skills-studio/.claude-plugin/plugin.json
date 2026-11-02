@@ -1,6 +1,6 @@
 {
   "name": "skills-studio",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "A workspace in the browser for a project's Claude skills: see which call which and how much each is used, check them, and edit, split, merge and tighten them with Claude.",
   "author": { "name": "Fredrik Gardin" }
 }
