@@ -41,18 +41,27 @@ header .counts { display: flex; gap: 8px; color: var(--muted); white-space: nowr
 main { display: grid; grid-template-columns: 250px minmax(0, 1fr); min-height: 0; }
 aside { background: var(--surface); overflow: auto; min-height: 0; }
 #palette { border-right: 1px solid var(--line); padding: 12px; }
-#panel { width: min(760px, calc(100vw - 32px)); max-height: 86vh; padding: 0; border: 1px solid var(--line); border-radius: 12px;
+#panel { width: min(1080px, calc(100vw - 48px)); max-height: 92vh; padding: 0; border: 1px solid var(--line); border-radius: 12px;
          background: var(--surface); color: var(--text); box-shadow: 0 12px 40px rgb(0 0 0 / .25); overflow: hidden; }
 #panel::backdrop { background: rgb(0 0 0 / .35); }
-#panel:has([role="tablist"]) { height: min(86vh, 820px); }
-#panel .body { display: grid; grid-template-rows: auto auto minmax(0, 1fr); max-height: 86vh; height: 100%; }
-#panel .head { padding: 18px 24px 0; }
-#panel .head .summary { color: var(--muted); margin: 6px 0 0; }
-#panel [role="tablist"] { display: flex; gap: 2px; padding: 14px 24px 0; border-bottom: 1px solid var(--line); }
-#panel [role="tab"] { border: none; border-bottom: 2px solid transparent; border-radius: 0; background: none; padding: 6px 12px; color: var(--muted); }
-#panel [role="tab"][aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
-#panel [role="tabpanel"] { padding: 4px 24px 24px; overflow: auto; }
-#panel [role="tabpanel"] > h3:first-child { margin-top: 16px; }
+#panel { height: 92vh; }
+#panel .body { display: grid; grid-template-rows: auto minmax(0, 1fr); max-height: 92vh; height: 100%; }
+#panel .head { padding: 20px 32px 14px; border-bottom: 1px solid var(--line); }
+#panel .head-actions { float: right; display: flex; gap: 8px; margin-left: 12px; }
+#panel .page { padding: 4px 32px 32px; overflow: auto; }
+#panel .md { font-size: 15px; max-width: 880px; }
+#panel .fields label:first-child { margin-top: 12px; }
+#panel textarea.source { font: 12.5px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; margin-top: 10px; min-height: 360px; tab-size: 2; }
+#panel .inline-form { display: flex; gap: 8px; margin-top: 4px; }
+#panel .inline-form > :first-child { flex: 1; min-width: 0; }
+#panel .inline-form button { white-space: nowrap; }
+.ref { border-radius: 5px; padding: 0 3px; cursor: pointer; white-space: nowrap; }
+.ref.call { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); font-weight: 600;
+            box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent); }
+.ref.mention { color: var(--text); outline: 1px dashed var(--muted); outline-offset: -1px; }
+.ref.broken { color: var(--error); outline: 1px dashed var(--error); outline-offset: -1px; cursor: help; }
+.ref code { background: none; padding: 0; color: inherit; }
+.ref:hover { filter: brightness(1.1); text-decoration: underline; }
 #panel .facts { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; margin-top: 8px; }
 #panel .head ul.findings { margin: 6px 0 0; font-size: 13px; }
 #panel .file { margin-top: 24px; padding-top: 10px; border-top: 1px solid var(--line); }
@@ -73,6 +82,16 @@ aside { background: var(--surface); overflow: auto; min-height: 0; }
 .md th { background: var(--surface-2); }
 .md hr { border: none; border-top: 1px solid var(--line); margin: 16px 0; }
 .md .link { color: var(--accent); text-decoration: underline dotted; }
+#panel .part { margin-top: 18px; }
+#panel .part + .part { margin-top: 30px; }
+#panel .part-rule { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+#panel .part-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text); }
+#panel .part-hint { color: var(--muted); font-size: 12px; flex: 1 1 200px; }
+#panel .part-cost { color: var(--muted); font-size: 12px; white-space: nowrap; }
+#panel .part-cost .over { color: var(--warning); font-weight: 600; }
+#panel .listing { background: var(--surface-2); border-radius: 8px; padding: 10px 14px; margin-top: 10px; }
+#panel .listing .description { margin: 2px 0; }
+#panel .listing dl { margin-top: 8px; font-size: 12.5px; }
 #panel .danger-zone { margin-top: 28px; padding-top: 4px; border-top: 1px solid var(--line); }
 #panel .danger-zone .row { justify-content: space-between; align-items: center; }
 
@@ -125,11 +144,6 @@ aside { background: var(--surface); overflow: auto; min-height: 0; }
 #panel pre { background: var(--surface-2); padding: 12px; border-radius: 6px; margin: 16px 0 0; white-space: pre-wrap; word-break: break-word; }
 #panel label { display: block; font-size: 12px; color: var(--muted); margin: 8px 0 3px; }
 #panel .row { display: flex; gap: 8px; margin-top: 8px; justify-content: flex-end; }
-#panel .close { float: right; margin-left: 12px; }
-#panel a.wire { color: var(--accent); cursor: pointer; text-decoration: none; }
-#panel a.wire.broken { color: var(--error); }
-#panel .unlink { border: none; background: none; padding: 0 4px; color: var(--muted); }
-#panel .unlink:hover { color: var(--error); }
 
 main.closed { display: grid; place-items: center; text-align: center; grid-template-columns: 1fr; padding: 24px; }
 main.closed h1 { font-size: 20px; margin: 0 0 8px; }
@@ -172,7 +186,7 @@ const TOKEN = new URLSearchParams(location.search).get("token") || "";
 const SOURCES = ["project", "user", "synced", "plugin"];
 const POLL_MS = 4000;
 
-const state = { graph: null, tasks: [], usage: { status: "idle", skills: {} }, signature: "", tab: "project", tab_open: null, selected: null };
+const state = { graph: null, tasks: [], usage: { status: "idle", skills: {} }, signature: "", tab: "project", selected: null, editing: null };
 const $ = (id) => document.getElementById(id);
 
 async function api(path, body) {
@@ -444,36 +458,36 @@ function markdown(source) {
 
 // ---- the skill panel -----------------------------------------------------------------------
 
-// The skill, and the forms that change it, open in a dialog over the cards: a head, then one tab
-// at a time. A redraw of the same dialog keeps its tab and its scroll place.
-function showPanel({ key, title, sub = null, summary = null, facts = [], tabs }) {
+// A skill opens in a dialog over the cards: one page, read as it is or edited in place. A redraw
+// of the same page keeps its scroll place; one with unsaved edits is never redrawn.
+function showPanel({ key, title, sub = null, facts = [], actions = [], content }) {
   const body = $("panel-body");
   const same = $("panel").open && body.dataset.key === key;
-  const scrolled = same ? body.querySelector("[role=tabpanel]")?.scrollTop || 0 : 0;
-  if (!same || !tabs.some((tab) => tab.key === state.tab_open)) state.tab_open = tabs[0].key;
+  const scrolled = same ? body.querySelector(".page")?.scrollTop || 0 : 0;
   body.dataset.key = key;
-  const built = {};
-  const draw = () => {
-    const current = tabs.find((tab) => tab.key === state.tab_open);
-    const list = tabs.length > 1 ? el("div", { role: "tablist" }, tabs.map((tab) =>
-      el("button", { role: "tab", "aria-selected": String(tab === current), onclick: () => { state.tab_open = tab.key; draw(); } }, tab.label))) : null;
-    body.replaceChildren(
-      el("div", { class: "head" }, el("button", { class: "close", onclick: closePanel, "aria-label": "Close" }, "×"),
-        el("h2", {}, title), sub ? el("div", { class: "sub" }, sub) : null, summary ? el("p", { class: "summary" }, summary) : null, facts),
-      list || el("div"),
-      el("div", { role: "tabpanel" }, built[current.key] ||= current.content()));
-  };
-  draw();
+  body.replaceChildren(
+    el("div", { class: "head" },
+      el("div", { class: "head-actions" }, actions, el("button", { class: "close", onclick: closePanel, "aria-label": "Close" }, "×")),
+      el("h2", {}, title), sub ? el("div", { class: "sub" }, sub) : null, facts),
+    el("div", { class: "page" }, content));
   if (!$("panel").open) $("panel").showModal();
-  body.querySelector("[role=tabpanel]").scrollTop = scrolled;
+  body.querySelector(".page").scrollTop = scrolled;
 }
 
+const editsUnsaved = () => state.editing && state.editing.dirty();
+
 function closePanel() {
+  if (editsUnsaved() && !confirm("Close without saving your edits?")) return;
   $("panel").close();
 }
 
+$("panel").addEventListener("cancel", (event) => {
+  if (editsUnsaved() && !confirm("Close without saving your edits?")) event.preventDefault();
+});
+
 $("panel").addEventListener("close", () => {
   state.selected = null;
+  state.editing = null;
   drawCards();
 });
 
@@ -481,29 +495,58 @@ $("panel").addEventListener("click", (event) => {
   if (event.target === $("panel")) closePanel();
 });
 
-function wireList(wires, pick, unlinkFrom = null) {
-  if (!wires.length) return el("p", { class: "sub" }, "None.");
-  return el("ol", {}, wires.map((wire) => {
-    const id = pick(wire);
-    return el("li", { title: wire.reason || "" },
-      el("a", { class: `wire${wire.broken ? " broken" : ""}`, onclick: () => !wire.broken && openSkill(id) },
-        id, wire.broken ? " (not in scope)" : ""),
-      el("span", { class: "sub" }, `${wire.kind ? ` · ${wire.kind}` : ""} · line ${wire.lines.join(", ")}`),
-      unlinkFrom ? el("button", { class: "unlink", title: `Remove every mention of ${wire.to}`, "aria-label": `Stop naming ${wire.to}`,
-        onclick: () => sendTask({ kind: "unlink", from: unlinkFrom, to: wire.to }, `stop ${unlinkFrom} naming ${wire.to}`) }, "×") : null);
-  }));
+// ---- skill names in the text ----------------------------------------------------------------
+
+// Marks every skill a text names, as the wires read it: a call solid, a mention dashed, a name with
+// no skill behind it red. Hovering says which and why; clicking opens that skill. A one-word name
+// counts only as code (`commit`) or a /command; longer names count anywhere outside code blocks.
+function markReferences(container, id) {
+  const wires = new Map(wiresFrom(id).map((wire) => [wire.to, wire]));
+  const byName = new Map();
+  for (const wire of wires.values()) {
+    const skill = skillById(wire.to);
+    byName.set(wire.to, wire);
+    if (skill && skill.source === "project" && skill.folder) byName.set(skill.folder, wire);
+  }
+  if (!byName.size) return;
+  const chip = (text, wire) => {
+    const kind = wire.broken ? "broken" : wire.kind === "mention" ? "mention" : "call";
+    const why = wire.broken ? "No skill by this name is in scope" : `${kind}${wire.reason ? ` — ${wire.reason}` : wire.kind ? "" : " (not judged yet)"}`;
+    return el("span", { class: `ref ${kind}`, title: why, onclick: () => !wire.broken && openSkill(wire.to) }, text);
+  };
+  for (const code of container.querySelectorAll("code")) {
+    if (code.closest("pre")) continue;
+    const wire = byName.get(code.textContent.replace(/^\//, "").split(/\s/)[0]);
+    if (wire) code.replaceWith(chip(code.cloneNode(true), wire));
+  }
+  const long = [...byName.keys()].filter((name) => /[-:]/.test(name)).sort((a, b) => b.length - a.length);
+  if (!long.length) return;
+  const pattern = new RegExp(`(?<![\\w:/-])/?(${long.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})(?![\\w-])`, "g");
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, {
+    acceptNode: (node) => node.parentElement.closest("code, pre, .ref") ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
+  const texts = [];
+  while (walker.nextNode()) texts.push(walker.currentNode);
+  for (const node of texts) {
+    const parts = node.textContent.split(pattern);
+    if (parts.length === 1) continue;
+    node.replaceWith(...parts.map((piece, n) => n % 2 ? chip(piece, byName.get(piece)) : piece));
+  }
 }
 
-function callForm(skill) {
+function callPicker(skill) {
   const named = new Set(wiresFrom(skill.id).map((w) => w.to));
   const options = state.graph.skills.filter((s) => s.id !== skill.id && !named.has(s.id)).sort((a, b) => a.id.localeCompare(b.id));
-  const pick = el("select", { "aria-label": "Skill to call" }, el("option", { value: "" }, "Call another skill…"),
+  const pick = el("select", { "aria-label": "Skill to call" }, el("option", { value: "" }, "Choose a skill…"),
     options.map((s) => el("option", { value: s.id }, s.id)));
-  return [pick, el("div", { class: "row" }, el("button", { onclick: () => pick.value &&
-    sendTask({ kind: "link", from: skill.id, to: pick.value }, `let ${skill.id} call ${pick.value}`) }, "Add call"))];
+  return el("div", { class: "inline-form" }, pick, el("button", { onclick: () => pick.value &&
+    sendTask({ kind: "link", from: skill.id, to: pick.value }, `let ${skill.id} call ${pick.value}`) }, "Ask Claude to add the call"));
 }
 
 async function openSkill(id) {
+  if (state.editing && state.editing.id !== id) {
+    if (state.editing.dirty() && !confirm("Leave without saving your edits?")) return;
+    state.editing = null;
+  }
   state.selected = id;
   drawCards();
   let skill;
@@ -513,30 +556,73 @@ async function openSkill(id) {
     return toast(error.message);
   }
   if (state.selected !== id) return;
-  const description = skill.frontmatter?.description || "";
   const findings = findingsFor(id);
   const facts = [
-    el("div", { class: "facts" }, ...usageFacts(id), el("span", { title: "The skill's text, loaded when it runs" }, `≈${skill.tokens.body} tokens`)),
+    el("div", { class: "facts" }, ...usageFacts(id)),
     findings.length ? el("ul", { class: "findings" }, findings.map((f) => el("li", {}, el("span", { class: `badge ${f.level}` }, f.level), " ",
       f.message, f.line ? el("span", { class: "sub" }, ` line ${f.line}`) : null))) : null,
   ];
-  const links = () => [
-    el("h3", {}, "Names, in order"), wireList(wiresFrom(id), (w) => w.to, skill.writable ? id : null),
-    ...(skill.writable ? callForm(skill) : []),
-    el("h3", {}, "Named by"), wireList(wiresTo(id), (w) => w.from),
+  const sub = `${skill.id} · ${skill.writable ? "project, editable" : `${skill.source}, read-only`}`;
+  if (state.editing?.id === id) return showPanel({ key: `edit:${id}`, title: skill.name, sub, facts, ...editPage(skill) });
+  const edit = skill.writable ? el("button", { class: "primary", onclick: () => { state.editing = { id, dirty: () => false }; openSkill(id); } }, "Edit") : null;
+  showPanel({ key: `skill:${id}`, title: skill.name, sub, facts, actions: [edit], content: readPage(skill) });
+}
+
+const fileLine = (skill) => el("p", { class: "sub file" },
+  `${skill.real_path} · ${skill.size} bytes · changed ${new Date(skill.modified).toLocaleString()}`);
+
+function readPage(skill) {
+  const description = skill.frontmatter?.description || "";
+  const text = el("div", { class: "md" }, markdown(skill.body));
+  markReferences(text, skill.id);
+  return [
+    part("Every turn", "The skill's listing: Claude reads it in every session to decide when to use the skill.",
+      listingCost(skill.id, skill, description), listing(skill)),
+    part("When it runs", "The rest of SKILL.md, loaded only when the skill is used.", `≈${skill.tokens.body} tokens`, text),
+    skill.writable ? null : copyForm(skill),
+    fileLine(skill),
   ];
-  const read = () => [
-    el("div", { class: "md" }, markdown(skill.body)),
-    el("p", { class: "sub file" }, `${skill.real_path} · ${skill.size} bytes · changed ${new Date(skill.modified).toLocaleString()}`),
-  ];
-  const tabs = [{ key: "read", label: "Skill", content: read }];
-  if (skill.writable) {
-    tabs.push({ key: "edit", label: "Edit", content: () => [...links(), ...editForm(skill, description), ...improveForm(skill), deleteZone(skill)] });
-  } else {
-    tabs.push({ key: "copy", label: "Links & copy", content: () => [...links(), ...copyForm(skill)] });
-  }
-  showPanel({ key: `skill:${id}`, title: skill.name, summary: summaryOf(skill), facts, tabs,
-    sub: `${skill.id} · ${skill.writable ? "project, editable" : `${skill.source}, read-only`}` });
+}
+
+// The same page as fields: name, description and the markdown text, saved as one task. The rest —
+// changing it with Claude, skill-creator, adding a call, deleting — sits at its foot.
+function editPage(skill) {
+  const description = skill.frontmatter?.description || "";
+  const name = el("input", { value: skill.name, "aria-label": "Name" });
+  const desc = el("textarea", { rows: "6", "aria-label": "Description" }, description);
+  const body = el("textarea", { class: "source", rows: "24", spellcheck: "false", "aria-label": "Text" }, skill.body);
+  const count = el("span", {});
+  const counted = () => {
+    count.className = desc.value.length > DESCRIPTION_MAX ? "over" : "";
+    count.textContent = `${desc.value.length} / ${DESCRIPTION_MAX} characters`;
+  };
+  desc.addEventListener("input", counted);
+  counted();
+  const grow = () => { body.style.height = "auto"; body.style.height = `${body.scrollHeight + 2}px`; };
+  body.addEventListener("input", grow);
+  requestAnimationFrame(grow);
+  const dirty = () => name.value.trim() !== skill.name || desc.value !== description || body.value !== skill.body;
+  state.editing = { id: skill.id, dirty };
+  const stop = () => { state.editing = null; openSkill(skill.id); };
+  const cancel = el("button", { onclick: () => (!dirty() || confirm("Drop your edits?")) && stop() }, "Cancel");
+  const save = el("button", { class: "primary", onclick: async () => {
+    if (!dirty()) return stop();
+    if (await sendTask({ kind: "save", skill: skill.id, name: name.value, description: desc.value, body: body.value }, `save ${skill.id}`)) stop();
+  } }, "Save");
+  const fields = Object.entries(skill.frontmatter || {}).filter(([key]) => !["name", "description"].includes(key));
+  return {
+    actions: [cancel, save],
+    content: [
+      part("Every turn", "The skill's listing: Claude reads it in every session to decide when to use the skill.", count,
+        el("div", { class: "fields" }, el("label", {}, "Name"), name, el("label", {}, "Description"), desc,
+          fields.length ? el("p", { class: "sub" }, `Kept as they are: ${fields.map(([key]) => key).join(", ")}.`) : null)),
+      part("When it runs", "The rest of SKILL.md, in markdown.", `≈${skill.tokens.body} tokens`, body),
+      part("With Claude", "Sent to the session, which works on it with you in the chat.", "",
+        ...changeForm(skill), ...improveForm(skill), el("label", {}, "Call another skill"), callPicker(skill)),
+      deleteZone(skill),
+      fileLine(skill),
+    ],
+  };
 }
 
 function usageFacts(id) {
@@ -545,14 +631,50 @@ function usageFacts(id) {
   return [
     el("span", {}, used.uses ? `${used.uses}× used · last ${used.last_used}` : "Never used"),
     used.tokens_7d ? el("span", {}, `${used.tokens_7d} tokens in 7 days`) : null,
-    el("span", { title: "The skill's line in the listing, sent every turn" }, `${used.context} tokens every turn`),
+  ];
+}
+
+// One of the two halves of a SKILL.md, under a divider naming when Claude reads it and what it costs.
+function part(title, hint, cost, ...content) {
+  return el("section", { class: "part" },
+    el("div", { class: "part-rule" }, el("span", { class: "part-title" }, title), el("span", { class: "part-hint" }, hint),
+      el("span", { class: "part-cost" }, cost)),
+    ...content);
+}
+
+const DESCRIPTION_MAX = 1024;
+
+function listingCost(id, skill, description) {
+  const measured = usageOf(id)?.context;
+  return [
+    measured ? `${measured} tokens` : `≈${skill.tokens.listing} tokens`,
+    " · ",
+    el("span", { class: description.length > DESCRIPTION_MAX ? "over" : "" }, `${description.length} / ${DESCRIPTION_MAX} characters`),
+  ];
+}
+
+// The frontmatter: the description as text, the other fields small beneath it.
+function listing(skill) {
+  const fields = Object.entries(skill.frontmatter || {}).filter(([key]) => !["name", "description"].includes(key));
+  const shown = (value) => typeof value === "string" ? value : JSON.stringify(value);
+  return el("div", { class: "md listing" },
+    el("p", { class: "description" }, skill.frontmatter?.description || el("em", {}, "No description: Claude cannot tell when to use it.")),
+    fields.length ? el("dl", {}, fields.flatMap(([key, value]) => [el("dt", {}, key), el("dd", {}, el("code", {}, shown(value)))])) : null);
+}
+
+function changeForm(skill) {
+  const change = el("textarea", { rows: "3", placeholder: "e.g. Extract the git handling into its own skill and call it from here." });
+  return [
+    el("label", {}, "Change it with Claude"), change,
+    el("div", { class: "row" }, el("button", { onclick: () => change.value.trim() &&
+      sendTask({ kind: "change", skill: skill.id, text: change.value }, `change ${skill.id}`) }, "Send to Claude")),
   ];
 }
 
 function improveForm(skill) {
   const focus = el("input", { placeholder: "Optional: e.g. make the description trigger better" });
   return [
-    el("h3", {}, "Improve with skill-creator"), focus,
+    el("label", {}, "Improve with skill-creator"), focus,
     el("div", { class: "row" }, el("button", { onclick: () =>
       sendTask({ kind: "improve", skill: skill.id, focus: focus.value.trim() }, `improve ${skill.id}`) }, "Improve")),
   ];
@@ -569,35 +691,11 @@ function deleteZone(skill) {
     el("button", { class: "danger", onclick: ask }, "Delete skill")));
 }
 
-function editForm(skill, description) {
-  const name = el("input", { value: skill.name });
-  const desc = el("textarea", { rows: "5" }, description);
-  const change = el("textarea", { rows: "3", placeholder: "e.g. Extract the git handling into its own skill and call it from here." });
-  return [
-    el("h3", {}, "Edit"),
-    el("label", {}, "Name"), name,
-    el("label", {}, `Description (${description.length} characters)`), desc,
-    el("div", { class: "row" }, el("button", { onclick: async () => {
-      if (name.value.trim() !== skill.name)
-        await sendTask({ kind: "edit", skill: skill.id, field: "name", value: name.value }, `rename ${skill.id}`);
-      if (desc.value !== description)
-        await sendTask({ kind: "edit", skill: skill.id, field: "description", value: desc.value }, `new description for ${skill.id}`);
-    } }, "Send edits")),
-    el("h3", {}, "Change with Claude"), change,
-    el("div", { class: "row" }, el("button", { class: "primary", onclick: () => change.value.trim() &&
-      sendTask({ kind: "change", skill: skill.id, text: change.value }, `change ${skill.id}`) }, "Send to Claude")),
-  ];
-}
-
 function copyForm(skill) {
-  const name = el("input", { value: `${skill.name}-copy` });
-  return [
-    el("h3", {}, "Copy into the project"),
-    el("p", { class: "sub" }, "Read-only here. A copy becomes the project's own skill, under a new name."),
-    el("label", {}, "New name"), name,
-    el("div", { class: "row" }, el("button", { onclick: () =>
-      sendTask({ kind: "copy", source: skill.id, name: name.value.trim() }, `copy ${skill.id} as ${name.value.trim()}`) }, "Copy as template")),
-  ];
+  const name = el("input", { value: `${skill.name}-copy`, "aria-label": "New name" });
+  return part("Copy", "Read-only here. A copy becomes the project's own skill, under a new name.", "",
+    el("div", { class: "inline-form" }, name, el("button", { onclick: () =>
+      sendTask({ kind: "copy", source: skill.id, name: name.value.trim() }, `copy ${skill.id} as ${name.value.trim()}`) }, "Copy as template")));
 }
 
 $("new-skill").addEventListener("click", () => {
@@ -606,11 +704,11 @@ $("new-skill").addEventListener("click", () => {
   const name = el("input", { placeholder: "git-finish" });
   const description = el("textarea", { rows: "4", placeholder: "What it does, and when to use it." });
   const intent = el("textarea", { rows: "4", placeholder: "Anything Claude should know when writing it." });
-  showPanel({ key: "new", title: "New skill", sub: "Claude writes it with you in the chat.", tabs: [{ key: "new", label: "New", content: () => [
+  showPanel({ key: "new", title: "New skill", sub: "Claude writes it with you in the chat.", content: el("div", { class: "fields" },
     el("label", {}, "Name"), name, el("label", {}, "Description"), description, el("label", {}, "Intent"), intent,
     el("div", { class: "row" }, el("button", { class: "primary", onclick: () => sendTask(
       { kind: "new", name: name.value.trim(), description: description.value, intent: intent.value }, `write ${name.value.trim()}`) },
-      "Send to Claude"))] }] });
+      "Send to Claude"))) });
 });
 
 $("analyse").addEventListener("click", () => sendTask({ kind: "analyse" }, "analyse this project's skills"));
@@ -684,8 +782,8 @@ async function refresh(force = false) {
   drawHeader();
   drawPalette();
   drawCards();
-  const typing = $("panel").contains(document.activeElement) && ["INPUT", "TEXTAREA"].includes(document.activeElement.tagName);
-  if (state.selected && !typing) openSkill(state.selected);
+  const typing = $("panel").contains(document.activeElement) && ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement.tagName);
+  if (state.selected && !typing && !state.editing) openSkill(state.selected);
 }
 
 (async () => {

@@ -115,9 +115,12 @@ studio state: what a parent runs is what its body says, so a second record would
   Each card shows the description's first sentence, how often the skill is used (`/skill-doctor`) and
   its worst finding; a never-used skill is faded. Palette on the side: project, user, synced and
   plugin skills.
-- **Skill** (a dialog, opened from a card or the palette) — frontmatter, body, path, ≈tokens, size,
-  last modified, usage, findings, what it names and what names it. Small fields (name, description)
-  are edited in place; body changes, improving with skill-creator and deleting go to Claude as tasks.
+- **Skill** (a dialog, opened from a card or the palette) — one page in two parts: *every turn*
+  (the frontmatter, with its cost and the description's length against the limit) and *when it runs*
+  (the body, rendered as markdown, with every skill it names marked as a call, a mention or missing).
+  *Edit* turns the same page into fields — name, description, the body as markdown — saved as one
+  task the session writes as typed. Changing it with Claude, improving with skill-creator, adding a
+  call and deleting sit at the foot, each a task.
 - **New skill** — a short form (name, description, intent), then handed to the session to write with
   skill-creator.
 - **Analysis** — the latest suggestions from Analyse, each one a Deploy task the developer can send.
