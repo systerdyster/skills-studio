@@ -51,6 +51,11 @@ class ScanTest(unittest.TestCase):
         self.assertEqual(found["tokens"]["listing"], -(-len("close-feature" "Close a case.") // 4))
         self.assertTrue(found["writable"])
         self.assertIsNone(found["error"])
+        self.assertEqual(found["body_line"], 5)
+
+    def test_body_without_frontmatter_starts_on_line_one(self):
+        skill(self.project_skills, "bare", "# No frontmatter\n")
+        self.assertEqual(self.run_scan()["bare"]["body_line"], 1)
 
     def test_symlinked_user_skill_is_named_by_its_frontmatter_not_its_folder(self):
         real = skill(self.vault, "code-review", fm("brain-code-review"))

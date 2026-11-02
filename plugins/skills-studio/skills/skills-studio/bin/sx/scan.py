@@ -60,6 +60,7 @@ def _describe(folder, source, plugin):
         "writable": source == "project",
         "frontmatter": frontmatter,
         "body": body,
+        "body_line": text.count("\n", 0, len(text) - len(body)) + 1,
         "size": stat.st_size,
         "modified": datetime.fromtimestamp(stat.st_mtime, timezone.utc).isoformat(timespec="seconds"),
         "tokens": {
