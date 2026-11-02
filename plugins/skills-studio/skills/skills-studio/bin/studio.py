@@ -67,7 +67,7 @@ def build_parser():
     kinds.add_argument("action", choices=["pending", "save"])
     kinds.add_argument("file", nargs="?", help="save: the judgement as JSON")
 
-    found = commands.add_parser("insights", parents=[common], help="Analyse: findings only a reading can make")
+    found = commands.add_parser("insights", parents=[common], help="Analyse: findings and suggestions only a reading can make")
     found.add_argument("action", choices=["show", "save"])
     found.add_argument("file", nargs="?", help="save: the findings as a JSON list; replaces the last set")
     return parser

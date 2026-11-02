@@ -148,13 +148,16 @@ button.busy::before { content: ""; display: inline-block; width: 10px; height: 1
 .insights.collapsed { grid-template-rows: auto 0; }
 .insights.collapsed ul { display: none; }
 .insights ul { list-style: none; margin: 0; padding: 4px 16px 10px 20px; display: grid; gap: 6px; overflow: auto; }
-.insight { display: grid; grid-template-columns: 170px minmax(140px, auto) 1fr; gap: 4px 12px; align-items: baseline; font-size: 13px;
+.insight { display: grid; grid-template-columns: 170px minmax(140px, auto) 1fr auto; gap: 4px 12px; align-items: baseline; font-size: 13px;
            padding: 6px 0; border-top: 1px solid var(--band-edge); }
 .insight:first-child { border-top: none; }
 .insight .kind { font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
 .insight.disagreement .kind, .insight.dead-reference .kind, .insight.badly-written .kind { color: var(--warning); }
 .insight.procedure-in-description .kind, .insight.unused .kind { color: var(--info); }
+.insight.split .kind, .insight.merge .kind, .insight.tighten .kind, .insight.reuse .kind { color: var(--accent); }
 .insight .who { white-space: nowrap; }
+.insight .ask { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; }
+.insight button { font-size: 12px; padding: 2px 10px; white-space: nowrap; }
 @media (max-width: 900px) { .insight { grid-template-columns: 1fr; } }
 #cards > .card { break-inside: avoid; margin-bottom: 14px; }
 #empty { color: var(--muted); text-align: center; padding: 48px 24px; column-span: all; }
@@ -299,7 +302,7 @@ const pendingFrom = (id) => state.tasks.filter((t) => (t.kind === "link" || t.ki
 
 function signature(graph) {
   return JSON.stringify([graph.skills.map((s) => [s.id, s.modified]), graph.wires.map((w) => [w.from, w.to, w.broken, w.kind]),
-    (graph.insights || []).map((i) => [i.kind, i.skills, i.message])]);
+    (graph.insights || []).map((i) => [i.kind, i.skills, i.message, i.proposal])]);
 }
 
 // ---- cards ---------------------------------------------------------------------------------
@@ -371,11 +374,15 @@ function card(id, path, shown) {
 const INSIGHT_LABELS = {
   "disagreement": "Disagree", "dead-reference": "Dead reference", "badly-written": "Badly written",
   "procedure-in-description": "Procedure in description", "unused": "Unused",
+  "split": "Split", "merge": "Merge", "tighten": "Tighten", "reuse": "Reuse",
 };
-const INSIGHT_ORDER = ["disagreement", "dead-reference", "badly-written", "procedure-in-description", "unused"];
+const INSIGHT_ORDER = ["disagreement", "dead-reference", "badly-written", "procedure-in-description", "unused",
+  "split", "merge", "tighten", "reuse"];
+const SUGGESTION_KINDS = new Set(["split", "merge", "tighten", "reuse"]);
 
-// Analyse's findings, docked at the foot of the window: what only a reading could tell, worst first.
-// Each names its skills; clicking one opens it. It folds to one line, and remembers that per viewer.
+// Analyse's findings and suggestions, docked at the foot of the window: what only a reading could
+// tell, worst first. Each names its skills; clicking one opens it. One that carries a proposal can be
+// sent to Claude as a change task. The dock folds to one line, and remembers that per viewer.
 // A finding leaves by itself once any of its skills' text changes.
 const DOCK_KEY = "skills-studio:dock-collapsed";
 const dockCollapsed = () => { try { return localStorage.getItem(DOCK_KEY) === "1"; } catch { return false; } };
@@ -393,14 +400,30 @@ function insightStrip() {
   };
   box.append(
     el("div", { class: "insights-head", onclick: flip }, el("strong", {}, "From Analyse"),
-      el("span", { class: "sub" }, `${items.length} finding${items.length === 1 ? "" : "s"} · gone once the text changes`), toggle),
+      el("span", { class: "sub" }, `${dockCount(items)} · gone once the text changes`), toggle),
     el("ul", {}, items.map((item) => el("li", { class: `insight ${item.kind}` },
       el("span", { class: "kind" }, INSIGHT_LABELS[item.kind] || item.kind),
       el("span", { class: "who" }, item.skills.flatMap((id, n) => [n ? (item.kind === "disagreement" ? " ↔ " : ", ") : null,
         el("span", { class: "ref call", onclick: () => openSkill(id),
           title: item.lines?.[id]?.length ? `line ${item.lines[id].join(", ")}` : id }, id)])),
-      el("span", { class: "what" }, item.message)))));
+      el("span", { class: "what" }, item.message,
+        item.proposal ? el("span", { class: "ask" }, `Would ask Claude to change ${item.proposal.skill}: ${item.proposal.text}`) : null),
+      item.proposal ? proposalButton(item.proposal) : el("span")))));
   return box;
+}
+
+function dockCount(items) {
+  const suggested = items.filter((i) => SUGGESTION_KINDS.has(i.kind)).length;
+  const found = items.length - suggested;
+  const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+  return [found ? plural(found, "finding") : null, suggested ? plural(suggested, "suggestion") : null].filter(Boolean).join(" · ");
+}
+
+// A proposal already in the inbox or running shows as sent, so it is not sent twice.
+function proposalButton({ skill, text }) {
+  const sent = state.tasks.some((t) => t.kind === "change" && t.skill === skill && t.text === text);
+  return el("button", { disabled: sent ? "" : null, title: sent ? "Already with Claude" : "Claude proposes the change in the chat and applies it on your yes",
+    onclick: () => sendTask({ kind: "change", skill, text }, `change ${skill}`) }, sent ? "Sent" : "Send to Claude");
 }
 
 function drawCards() {

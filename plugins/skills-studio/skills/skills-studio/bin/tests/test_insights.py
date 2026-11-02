@@ -23,6 +23,13 @@ DISAGREE = {
     "message": "code-review says commit runs it first; commit only lists it under Related.",
     "lines": {"code-review": [335], "commit": [76]},
 }
+SPLIT = {
+    "kind": "split",
+    "skills": ["code-review"],
+    "message": "The security pass is a skill of its own, spread over steps 3 and 6.",
+    "lines": {"code-review": [40, 88]},
+    "proposal": {"skill": "code-review", "text": "Split the security pass into security-review; call it at steps 3 and 6."},
+}
 
 
 class SaveTest(unittest.TestCase):
@@ -59,6 +66,35 @@ class SaveTest(unittest.TestCase):
         with self.assertRaisesRegex(InsightsError, "message"):
             save(self.paths, [{**DISAGREE, "message": " "}], SKILLS, TEXTS)
 
+    def test_a_suggestion_keeps_the_change_it_would_send(self):
+        save(self.paths, [SPLIT], SKILLS, TEXTS)
+        [kept] = insights.read(self.paths)
+        self.assertEqual(kept["proposal"], SPLIT["proposal"])
+
+    def test_a_suggestion_needs_a_proposal(self):
+        with self.assertRaisesRegex(InsightsError, "proposal"):
+            save(self.paths, [{k: v for k, v in SPLIT.items() if k != "proposal"}], SKILLS, TEXTS)
+
+    def test_a_proposal_changes_a_project_skill_it_concerns(self):
+        for skill in ("commit", "my-tdd"):
+            with self.subTest(skill=skill), self.assertRaisesRegex(InsightsError, "proposal"):
+                save(self.paths, [{**SPLIT, "skills": ["code-review", "my-tdd"],
+                                   "proposal": {"skill": skill, "text": "Split it."}}], SKILLS, TEXTS)
+
+    def test_a_proposal_says_what_to_do(self):
+        with self.assertRaisesRegex(InsightsError, "proposal"):
+            save(self.paths, [{**SPLIT, "proposal": {"skill": "code-review", "text": " "}}], SKILLS, TEXTS)
+
+    def test_a_finding_may_carry_a_proposal_too(self):
+        save(self.paths, [{**DISAGREE, "proposal": {"skill": "commit", "text": "Say code-review runs first."}}], SKILLS, TEXTS)
+        [kept] = insights.read(self.paths)
+        self.assertEqual(kept["proposal"]["skill"], "commit")
+
+    def test_a_finding_without_a_proposal_has_none(self):
+        save(self.paths, [DISAGREE], SKILLS, TEXTS)
+        [kept] = insights.read(self.paths)
+        self.assertNotIn("proposal", kept)
+
     def test_an_unreadable_file_reads_as_none(self):
         self.paths.ensure()
         self.paths.insights.write_text("{not json")
@@ -81,6 +117,11 @@ class LiveTest(unittest.TestCase):
         self.assertEqual(found["commit"]["other"], "code-review")
         self.assertEqual(found["commit"]["check"], "analyse-disagreement")
         self.assertEqual(found["commit"]["level"], "warning")
+
+    def test_a_suggestion_shows_on_its_skill_as_info(self):
+        kept = {**SPLIT, "fingerprints": {"code-review": fingerprint(TEXTS["code-review"])}}
+        [found] = as_findings(live([kept], TEXTS))
+        self.assertEqual((found["check"], found["level"]), ("analyse-split", "info"))
 
 
 if __name__ == "__main__":

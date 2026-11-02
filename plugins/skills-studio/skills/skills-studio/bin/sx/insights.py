@@ -1,6 +1,10 @@
 """Analyse's findings: what only a reading of the skills can tell — two skills that contradict each
 other, a reference by the wrong name, a description spent on procedure, a skill never used and why,
-a skill that is badly written. Claude makes them in an Analyse task; this module only keeps them.
+a skill that is badly written — and its suggestions: a split, a merge, a tightening, a reuse. Claude
+makes them in an Analyse task; this module only keeps them.
+
+A suggestion carries a proposal, the change task the developer can send from the page: which
+project skill to change, and what to ask. A finding may carry one too.
 
 Each is saved with a fingerprint of every skill it concerns, in .skills-studio/insights.json, and
 lives only while all those texts are unchanged. Analyse replaces the whole set each time it runs."""
@@ -9,6 +13,7 @@ import json
 import os
 import tempfile
 
+from sx.tasks import MAX_TEXT
 from sx.wirekinds import fingerprint
 
 # kind -> the level its finding shows at
@@ -18,7 +23,12 @@ KINDS = {
     "badly-written": "warning",
     "procedure-in-description": "info",
     "unused": "info",
+    "split": "info",
+    "merge": "info",
+    "tighten": "info",
+    "reuse": "info",
 }
+SUGGESTIONS = ("split", "merge", "tighten", "reuse")
 MAX_MESSAGE = 600
 
 
@@ -27,8 +37,12 @@ class InsightsError(ValueError):
 
 
 def read(paths):
+    return _read_list(paths.insights)
+
+
+def _read_list(path):
     try:
-        kept = json.loads(paths.insights.read_text())
+        kept = json.loads(path.read_text())
     except (OSError, ValueError):
         return []
     return kept if isinstance(kept, list) else []
@@ -57,19 +71,43 @@ def save(paths, raw, skills, texts):
         lines = item.get("lines") or {}
         if not isinstance(lines, dict):
             raise InsightsError("lines: {skill id: [line, …]}")
-        kept.append({
+        finding = {
             "kind": item["kind"],
             "skills": named,
             "message": message.strip()[:MAX_MESSAGE],
             "lines": {s: [n for n in lines.get(s, []) if isinstance(n, int)] for s in named},
             "fingerprints": {s: fingerprint(texts.get(s, "")) for s in named},
-        })
-    paths.ensure()
-    handle, partial = tempfile.mkstemp(dir=paths.root, prefix=".insights-", suffix=".partial")
-    with os.fdopen(handle, "w") as out:
-        out.write(json.dumps(kept, ensure_ascii=False, indent=2))
-    os.replace(partial, paths.insights)
+        }
+        proposal = _proposal(item, by_id)
+        if proposal:
+            finding["proposal"] = proposal
+        kept.append(finding)
+    _write(paths, paths.insights, kept)
     return kept
+
+
+def _write(paths, target, data):
+    paths.ensure()
+    handle, partial = tempfile.mkstemp(dir=paths.root, prefix=f".{target.stem}-", suffix=".partial")
+    with os.fdopen(handle, "w") as out:
+        out.write(json.dumps(data, ensure_ascii=False, indent=2))
+    os.replace(partial, target)
+
+
+def _proposal(item, by_id):
+    proposal = item.get("proposal")
+    if proposal is None:
+        if item["kind"] in SUGGESTIONS:
+            raise InsightsError("proposal: a suggestion needs {skill, text}, the change it would send")
+        return None
+    if not isinstance(proposal, dict):
+        raise InsightsError("proposal: {skill, text}")
+    skill, text = proposal.get("skill"), proposal.get("text")
+    if skill not in item["skills"] or by_id[skill].get("source") != "project":
+        raise InsightsError("proposal: skill must be a project skill the finding concerns")
+    if not isinstance(text, str) or not text.strip():
+        raise InsightsError("proposal: text says what to change")
+    return {"skill": skill, "text": text.strip()[:MAX_TEXT]}
 
 
 def live(kept, texts):

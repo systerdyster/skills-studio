@@ -122,7 +122,8 @@ studio state: what a parent runs is what its body says, so a second record would
   call and deleting sit at the foot, each a task.
 - **New skill** — a short form (name, description, intent), then handed to the session to write with
   skill-creator.
-- **From Analyse** — under the cards, Analyse's findings, worst first, each naming its skills.
+- **From Analyse** — docked at the foot of the window, Analyse's findings worst first, then its
+  suggestions, each naming its skills; one with a proposal has *Send to Claude*.
 
 ## Analyse
 
@@ -134,15 +135,19 @@ description spent on procedure, an unused skill with a likely reason. They are k
 `.skills-studio/insights.json` with a fingerprint of every skill concerned, live only while all those
 texts are unchanged, and each run replaces the whole set.
 
-**Not built yet:** suggestions, each one a task the developer can send. It would suggest:
+It also records **suggestions**, kept the same way, each with a **proposal**: the `change` task the
+developer can send from the page — which project skill to change, and what to ask. Sent, it is a
+change task like any other: Claude proposes in the chat and applies on a yes. A finding may carry a
+proposal too. It suggests:
 
 - **Splits** — parts of a skill that are a skill of their own, also when the part is spread across
   sections (the git handling in a close-feature skill sits in four steps and the guardrails).
-- **Merges** — skills that overlap; merge them, or let one call the other.
+- **Merges** — skills that overlap; merge them, or let one call the other. A merge touches two skills
+  but is one change, on the skill that remains.
 - **Tightening** — a vaguer or longer description than needed, triggers that collide, a body longer
   than its job.
 - **Reuse** — a project skill that resembles a read-only user or plugin skill, with the suggestion to
-  copy that one as a template.
+  rebuild it from that one as a template.
 
 ## Local checks
 

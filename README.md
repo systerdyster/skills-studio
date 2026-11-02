@@ -16,7 +16,7 @@ The studio is there to make that visible and cheap to fix.
   numbers come from Claude Code's own `/skill-doctor` report.
 - **Findings.** Local checks flag what needs a look: missing or broken frontmatter, a description too
   long or too short, duplicate names, triggers that overlap, references to skills that do not exist.
-  What only a reading can tell comes from Analyse (below) and is listed under the cards.
+  What only a reading can tell comes from Analyse (below) and is docked at the foot of the window.
 - **The skill itself.** Opening a card shows the whole `SKILL.md` on one page, in two parts:
   - *Every turn* — the frontmatter Claude reads in every session to decide when to use the skill,
     with what it costs and the description's length against the 1024-character limit;
@@ -46,9 +46,22 @@ mentions, it records what the local checks cannot see:
 | **Procedure in description** | The description spends its every-turn tokens on how the skill works instead of when to use it. |
 | **Unused** | Never or rarely used, with a likely reason — such as triggers that overlap another skill's. |
 
-They are listed under the cards, worst first, and on each skill they concern. Each is kept with a
-fingerprint of every skill involved, so it disappears by itself once one of those texts changes — a
-fixed problem never lingers. Analyse never fixes anything; the findings are for you.
+It also suggests how to make the skills smaller and more focused:
+
+| Suggestion | What it means |
+|---|---|
+| **Split** | Part of a skill is a job of its own — extract it and call it from where it was. |
+| **Merge** | Two skills overlap — merge them, or let one call the other. |
+| **Tighten** | A description vaguer or longer than needed, colliding triggers, a body longer than its job. |
+| **Reuse** | A project skill resembles a user or plugin skill closely enough to start from it. |
+
+Each suggestion comes with the change it would ask for; **Send to Claude** queues it as a change
+task, and Claude proposes it in the chat before applying anything.
+
+They are docked at the foot of the window, findings worst first, then suggestions, and shown on each
+skill they concern. Each is kept with a fingerprint of every skill involved, so it disappears by
+itself once one of those texts changes — a fixed problem never lingers. Analyse never fixes anything;
+the findings and suggestions are for you.
 
 ## Changing skills
 

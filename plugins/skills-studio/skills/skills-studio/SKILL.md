@@ -64,7 +64,7 @@ backticks (`` `commit` ``). Never add frontmatter fields to record links.
 | `delete` | `skill` | Delete the skill's folder. First list every skill that names it (`S graph`, wires to it) and ask whether to remove those mentions too or leave them as broken wires. | Yes — always, naming the callers |
 | `new` | `name`, `description`, `intent` | Write `.claude/skills/<name>/SKILL.md` with the developer, using a skill-creator skill when one is available. | Yes |
 | `copy` | `source`, `name` | `S copy <source> <name>`, then `S check --text` and show the findings for the copy — personal content above all, since it lands in a shared repository. | No |
-| `analyse` | — | Judge every wire a **call** or a **mention**, then record the **findings** (both below). Suggestions — splits, merges — are not built yet: say so in the note. | No — save, then sum up |
+| `analyse` | — | Judge every wire a **call** or a **mention**, then record the **findings** and **suggestions** (all below). | No — save, then sum up |
 | `close` | — | The developer pressed *Close studio*; the server has already stopped itself. Do **Stop** below. | No |
 
 **Calls and mentions.** `S kinds pending` lists the project skills whose wires are not judged for
@@ -82,8 +82,8 @@ A wire with one call among several mentions is a call. Write the judgement to a 
 changed meanwhile.
 
 **Findings.** Then read all the project's skills, with `S check --text` for what the local checks
-already say, and record what only a reading can tell — the studio shows it above the cards and on
-each skill concerned:
+already say, and record what only a reading can tell — the studio docks it at the foot of the page
+and shows it on each skill concerned:
 
 | `kind` | When |
 |---|---|
@@ -93,11 +93,28 @@ each skill concerned:
 | `unused` | Usage shows it never or rarely runs; say why you think so — triggers that overlap another's, a name nobody would say. |
 | `badly-written` | Unclear, contradictory or padded: steps that can't be followed, rules that clash, a body far longer than its job. Say what, specifically. |
 
-Write them to a scratch file as a list, `[{"kind": "…", "skills": ["<id>", …], "message": "<one or
-two sentences>", "lines": {"<id>": [<line>, …]}}]`, and run `S insights save <file>`. It replaces the
-last set, so include every finding that still holds; a finding disappears by itself once any of its
-skills' text changes. Don't fix anything: findings are for the developer. Sum up in the chat: how many
-calls and mentions, and the findings, worst first.
+**Suggestions.** In the same reading, look for what would make the skills smaller and more focused.
+Each is recorded like a finding, plus a `proposal`: the `change` task the developer can send from the
+page with one click — `{"skill": "<a project skill it concerns>", "text": "<what to ask>"}`. Write the
+text as the developer would: complete enough to act on without this conversation, naming the parts by
+their headings or steps.
+
+| `kind` | When | The proposal |
+|---|---|---|
+| `split` | Part of a skill is a job of its own that could also be used alone — also when it is spread across several steps and the guardrails. | On the parent: what to extract, the new skill's name, and every place the parent should call it. |
+| `merge` | Two project skills overlap: the same triggers, or one does a part of the other's job its own way. | On the one that should remain: merge the other into it, or make it call the other at a named step. Name both. |
+| `tighten` | A description vaguer or longer than needed, triggers that collide with another skill's, a body longer than its job. | On that skill: what to cut or sharpen, specifically. |
+| `reuse` | A project skill resembles a user or plugin skill closely enough to start from it. | On the project skill: rebuild it from that skill as a template, keeping what is the project's own. |
+
+Suggest only what you would defend; none is a fine result. A finding may carry a `proposal` too, when
+the fix is clear.
+
+Write findings and suggestions to one scratch file as a list, `[{"kind": "…", "skills": ["<id>", …],
+"message": "<one or two sentences>", "lines": {"<id>": [<line>, …]}, "proposal": {…}}]`, and run
+`S insights save <file>`. It replaces the last set, so include every item that still holds; an item
+disappears by itself once any of its skills' text changes. Don't fix anything: they are for the
+developer, and a sent proposal arrives as a `change` task like any other. Sum up in the chat: how many
+calls and mentions, the findings worst first, then the suggestions.
 
 After any task that changed skills, run `S check --text` and mention new findings for the skills you
 touched. Never commit: the developer decides what to keep.
