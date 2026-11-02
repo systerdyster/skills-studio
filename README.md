@@ -78,6 +78,13 @@ claude plugin install skills-studio@skills-studio
 
 To work on the studio itself, add your clone instead: `claude plugin marketplace add /path/to/skills-studio`.
 
+To get a newer version, refresh the marketplace and update the plugin, then restart Claude Code:
+
+```sh
+claude plugin marketplace update skills-studio
+claude plugin update skills-studio@skills-studio
+```
+
 Needs Claude Code and Python 3. Nothing else: the server and the CLI use the standard library only,
 and the page loads nothing from outside.
 
@@ -92,6 +99,13 @@ In the project whose skills you want to see, run:
 The session takes a lease (one studio per project), starts the server on `127.0.0.1` with a random
 token, opens the page and watches for tasks. Keep talking to the session as usual in between. *Close
 studio* on the page, or saying you are done, stops it.
+
+**Keep that session open.** The page only shows and queues; every change and every Analyse is done
+by the session that opened the studio. If it is closed, tasks wait in the inbox until `/skills-studio`
+is run again. While a task runs, the page shows it — Analyse with the session's progress.
+
+**Start with Analyse** in a project you open for the first time. Until it has run, every reference
+counts as a call and there are no findings from a reading — only the local checks.
 
 The studio keeps its state in `.skills-studio/` in the project — tasks, the call/mention verdicts,
 Analyse's findings, the lease — and that folder ignores itself in git, so the project's `.gitignore` is never touched.
