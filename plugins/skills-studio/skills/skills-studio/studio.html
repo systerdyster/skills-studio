@@ -4,19 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Skills Studio</title>
-<link rel="stylesheet" href="/vendor/drawflow.min.css">
-<script src="/vendor/drawflow.min.js"></script>
 <style>
 :root {
   --bg: #f6f6f4; --surface: #ffffff; --surface-2: #efefec; --line: #d9d9d4; --text: #1d1d1b;
-  --muted: #6b6b66; --accent: #3b5bdb; --accent-text: #ffffff; --wire: #8a8a84;
+  --muted: #6b6b66; --accent: #3b5bdb; --accent-text: #ffffff;
   --error: #c92a2a; --warning: #b7791f; --info: #3b5bdb; --readonly: #f0efea;
   --project: #2b8a3e; --user: #6741d9; --synced: #0c8599; --plugin: #a61e4d;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #161615; --surface: #20201e; --surface-2: #2a2a27; --line: #3a3a36; --text: #ecece8;
-    --muted: #9b9b94; --accent: #748ffc; --accent-text: #10111a; --wire: #77776f;
+    --muted: #9b9b94; --accent: #748ffc; --accent-text: #10111a;
     --error: #ff6b6b; --warning: #f0b44c; --info: #748ffc; --readonly: #262624;
     --project: #69db7c; --user: #b197fc; --synced: #66d9e8; --plugin: #f783ac;
   }
@@ -25,13 +23,13 @@
 html, body { height: 100%; margin: 0; }
 body { background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
        display: grid; grid-template-rows: auto minmax(0, 1fr); grid-template-columns: minmax(0, 1fr); overflow: hidden; }
-button, input, textarea { font: inherit; color: inherit; }
+button, input, textarea, select { font: inherit; color: inherit; }
 button { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 11px; cursor: pointer; }
 button:hover { border-color: var(--accent); }
 button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
 button.danger { color: var(--error); }
 button.danger:hover { border-color: var(--error); }
-input, textarea { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; width: 100%; }
+input, textarea, select { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; width: 100%; }
 textarea { resize: vertical; min-height: 70px; }
 code, pre { font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
 
@@ -40,19 +38,49 @@ header h1 { font-size: 15px; margin: 0; }
 header .project { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1 1 120px; direction: rtl; text-align: left; }
 header .counts { display: flex; gap: 8px; color: var(--muted); white-space: nowrap; align-items: center; }
 
-main { display: grid; grid-template-columns: 250px minmax(0, 1fr) 380px; min-height: 0; }
-main.no-panel { grid-template-columns: 250px minmax(0, 1fr) 0; }
+main { display: grid; grid-template-columns: 250px minmax(0, 1fr); min-height: 0; }
 aside { background: var(--surface); overflow: auto; min-height: 0; }
 #palette { border-right: 1px solid var(--line); padding: 12px; }
-#panel { border-left: 1px solid var(--line); padding: 16px; }
-main.no-panel #panel { display: none; }
+#panel { width: min(760px, calc(100vw - 32px)); max-height: 86vh; padding: 0; border: 1px solid var(--line); border-radius: 12px;
+         background: var(--surface); color: var(--text); box-shadow: 0 12px 40px rgb(0 0 0 / .25); overflow: hidden; }
+#panel::backdrop { background: rgb(0 0 0 / .35); }
+#panel:has([role="tablist"]) { height: min(86vh, 820px); }
+#panel .body { display: grid; grid-template-rows: auto auto minmax(0, 1fr); max-height: 86vh; height: 100%; }
+#panel .head { padding: 18px 24px 0; }
+#panel .head .summary { color: var(--muted); margin: 6px 0 0; }
+#panel [role="tablist"] { display: flex; gap: 2px; padding: 14px 24px 0; border-bottom: 1px solid var(--line); }
+#panel [role="tab"] { border: none; border-bottom: 2px solid transparent; border-radius: 0; background: none; padding: 6px 12px; color: var(--muted); }
+#panel [role="tab"][aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+#panel [role="tabpanel"] { padding: 4px 24px 24px; overflow: auto; }
+#panel [role="tabpanel"] > h3:first-child { margin-top: 16px; }
+#panel .facts { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; margin-top: 8px; }
+#panel .head ul.findings { margin: 6px 0 0; font-size: 13px; }
+#panel .file { margin-top: 24px; padding-top: 10px; border-top: 1px solid var(--line); }
+.md { line-height: 1.55; padding-top: 6px; }
+.md :is(h1, h2, h3, h4, h5, h6) { text-transform: none; letter-spacing: 0; color: var(--text); margin: 22px 0 6px; line-height: 1.3; }
+#panel .md h1 { font-size: 19px; } #panel .md h2 { font-size: 16px; } #panel .md h3 { font-size: 14.5px; }
+#panel .md :is(h4, h5, h6) { font-size: 13.5px; color: var(--muted); }
+.md p { margin: 8px 0; }
+.md :is(ul, ol) { margin: 6px 0; padding-left: 22px; }
+.md li { margin: 2px 0; }
+.md li.task { list-style: none; margin-left: -18px; }
+.md code { background: var(--surface-2); border-radius: 4px; padding: 1px 4px; font-size: 12.5px; }
+#panel .md pre { margin: 10px 0; }
+.md pre code { background: none; padding: 0; }
+.md blockquote { margin: 10px 0; padding: 2px 12px; border-left: 3px solid var(--accent); background: var(--surface-2); border-radius: 0 6px 6px 0; }
+.md table { border-collapse: collapse; margin: 10px 0; font-size: 13px; display: block; overflow-x: auto; }
+.md :is(th, td) { border: 1px solid var(--line); padding: 4px 8px; text-align: left; vertical-align: top; }
+.md th { background: var(--surface-2); }
+.md hr { border: none; border-top: 1px solid var(--line); margin: 16px 0; }
+.md .link { color: var(--accent); text-decoration: underline dotted; }
+#panel .danger-zone { margin-top: 28px; padding-top: 4px; border-top: 1px solid var(--line); }
+#panel .danger-zone .row { justify-content: space-between; align-items: center; }
 
 .tabs { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0; }
-header .tabs { margin: 0; }
 .tabs button { padding: 2px 8px; font-size: 12px; }
 .tabs button[aria-pressed="true"] { background: var(--surface-2); border-color: var(--text); }
 #palette ul { list-style: none; margin: 0; padding: 0; }
-#palette li { padding: 6px 8px; border-radius: 6px; cursor: grab; display: flex; gap: 6px; align-items: center; }
+#palette li { padding: 6px 8px; border-radius: 6px; cursor: pointer; display: flex; gap: 6px; align-items: center; }
 #palette li:hover { background: var(--surface-2); }
 #palette li .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
 #palette .hint { color: var(--muted); font-size: 12px; margin: 10px 0 0; }
@@ -63,31 +91,28 @@ header .tabs { margin: 0; }
 .badge { font-size: 11px; border-radius: 9px; padding: 0 6px; border: 1px solid currentColor; white-space: nowrap; }
 .badge.error { color: var(--error); } .badge.warning { color: var(--warning); } .badge.info { color: var(--info); }
 
-#canvas-wrap { position: relative; min-width: 0; min-height: 0; }
-#drawflow { position: absolute; inset: 0; background: var(--bg);
-  background-image: radial-gradient(var(--line) 1px, transparent 1px); background-size: 22px 22px; }
-#empty { position: absolute; inset: 0; display: none; place-items: center; text-align: center; color: var(--muted); padding: 24px; pointer-events: none; }
-#empty.shown { display: grid; }
+#cards { overflow: auto; min-height: 0; padding: 16px; columns: 300px; column-gap: 14px; }
+#cards > .card { break-inside: avoid; margin-bottom: 14px; }
+#empty { color: var(--muted); text-align: center; padding: 48px 24px; column-span: all; }
 
-.drawflow .drawflow-node { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; color: var(--text);
-  width: 220px; min-height: 0; padding: 8px 10px; box-shadow: 0 1px 2px rgb(0 0 0 / .06); }
-.drawflow .drawflow-node.selected { background: var(--surface); border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
-.drawflow .drawflow-node.readonly { background: var(--readonly); }
-.drawflow .drawflow-node.unused { opacity: .55; }
-.drawflow .drawflow-node.unused:hover, .drawflow .drawflow-node.unused.selected { opacity: 1; }
-.drawflow .drawflow-node.missing { background: transparent; border: 1px dashed var(--error); color: var(--error); }
-.drawflow .drawflow-node .input, .drawflow .drawflow-node .output { width: 12px; height: 12px; background: var(--surface); border: 2px solid var(--wire); }
-.drawflow .drawflow-node .output:hover { background: var(--accent); }
-.drawflow .drawflow-node .inputs { left: -7px; } .drawflow .drawflow-node .outputs { right: -7px; }
-.drawflow .drawflow-node .drawflow-delete { display: none; }
-.drawflow .connection .main-path { stroke: var(--wire); stroke-width: 2px; }
-.drawflow .connection .main-path:hover, .drawflow .connection .main-path.selected { stroke: var(--accent); }
-.drawflow .connection.broken .main-path { stroke: var(--error); stroke-dasharray: 6 4; }
-.drawflow .connection.pending .main-path { stroke: var(--accent); stroke-dasharray: 2 4; }
-.drawflow-delete { background: var(--error); border: none; color: #fff; }
-.node-title { display: flex; gap: 6px; align-items: center; font-weight: 600; overflow: hidden; }
-.node-title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.node-meta { display: flex; gap: 6px; align-items: center; color: var(--muted); font-size: 12px; margin-top: 3px; flex-wrap: wrap; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+.card .card { background: var(--surface-2); border-radius: 8px; padding: 8px 10px; margin-top: 8px; }
+.card .card .card { background: var(--surface); }
+.card .card .card .card { background: var(--surface-2); }
+.card.readonly { border-style: dashed; }
+.card.unused > .card-head { opacity: .55; }
+.card.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.card-head { display: flex; gap: 6px; align-items: center; cursor: pointer; min-width: 0; }
+.card-head .name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card-head .meta { color: var(--muted); font-size: 12px; white-space: nowrap; margin-left: auto; display: flex; gap: 6px; align-items: center; }
+.card-head .toggle { border: none; background: none; padding: 0 2px; color: var(--muted); font-size: 12px; }
+.card .summary { color: var(--muted); font-size: 12.5px; margin: 3px 0 0 14px; display: -webkit-box; -webkit-line-clamp: 2;
+                 -webkit-box-orient: vertical; overflow: hidden; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-top: 8px; font-size: 12px; color: var(--muted); }
+.chip { border: 1px solid var(--line); border-radius: 9px; padding: 0 7px; background: var(--surface); color: var(--text); cursor: pointer; white-space: nowrap; }
+.chip.broken { border-style: dashed; border-color: var(--error); color: var(--error); cursor: default; }
+.chip.pending { border-style: dotted; border-color: var(--accent); color: var(--accent); cursor: default; }
+.loop { color: var(--muted); font-size: 12px; margin-top: 8px; }
 
 #panel h2 { font-size: 16px; margin: 0 0 2px; word-break: break-word; }
 #panel h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 18px 0 6px; }
@@ -97,12 +122,14 @@ header .tabs { margin: 0; }
 #panel dd { margin: 0; }
 #panel ol, #panel ul.findings { margin: 0; padding-left: 20px; }
 #panel ul.findings li { margin-bottom: 4px; }
-#panel pre { background: var(--surface-2); padding: 10px; border-radius: 6px; overflow: auto; max-height: 360px; white-space: pre-wrap; word-break: break-word; }
+#panel pre { background: var(--surface-2); padding: 12px; border-radius: 6px; margin: 16px 0 0; white-space: pre-wrap; word-break: break-word; }
 #panel label { display: block; font-size: 12px; color: var(--muted); margin: 8px 0 3px; }
 #panel .row { display: flex; gap: 8px; margin-top: 8px; justify-content: flex-end; }
-#panel .close { float: right; }
+#panel .close { float: right; margin-left: 12px; }
 #panel a.wire { color: var(--accent); cursor: pointer; text-decoration: none; }
 #panel a.wire.broken { color: var(--error); }
+#panel .unlink { border: none; background: none; padding: 0 4px; color: var(--muted); }
+#panel .unlink:hover { color: var(--error); }
 
 main.closed { display: grid; place-items: center; text-align: center; grid-template-columns: 1fr; padding: 24px; }
 main.closed h1 { font-size: 20px; margin: 0 0 8px; }
@@ -113,9 +140,8 @@ main.closed .sub { color: var(--muted); }
 #toast.shown { opacity: 1; }
 
 @media (max-width: 900px) {
-  main, main.no-panel { grid-template-columns: 1fr; grid-template-rows: 180px 1fr auto; }
+  main { grid-template-columns: 1fr; grid-template-rows: 180px 1fr; }
   #palette { border-right: none; border-bottom: 1px solid var(--line); }
-  #panel { border-left: none; border-top: 1px solid var(--line); max-height: 50vh; }
 }
 </style>
 </head>
@@ -124,27 +150,21 @@ main.closed .sub { color: var(--muted); }
   <h1>Skills Studio</h1>
   <span class="project" id="project"></span>
   <span class="counts" id="counts"></span>
-  <div class="tabs flows" id="flows" role="group" aria-label="Show one flow"></div>
   <button id="usage">Refresh usage</button>
-  <button id="reset-layout" title="Forget where nodes were placed and lay them out again">Reset layout</button>
   <button id="new-skill">New skill</button>
   <button id="analyse" class="primary">Analyse</button>
   <button id="close-studio" title="Stop the studio and let Claude stop watching for tasks">Close studio</button>
 </header>
-<main class="no-panel" id="main">
+<main id="main">
   <aside id="palette">
     <input id="search" type="search" placeholder="Find a skill" aria-label="Find a skill">
     <div class="tabs" id="tabs"></div>
     <ul id="palette-list"></ul>
-    <p class="hint">Drag a skill onto the canvas; double-click a node to open it. Draw a wire from a project skill's right edge to let it call another skill.</p>
+    <p class="hint">Each card holds the skills it calls, in order; what it only mentions is listed at its foot. Click a skill to open it.</p>
   </aside>
-  <section id="canvas-wrap">
-    <div id="drawflow"></div>
-    <div id="empty"><div><p><strong>This project has no skills of its own yet.</strong></p>
-      <p>Create one with <em>New skill</em>, or drag a skill from the palette and copy it into the project.</p></div></div>
-  </section>
-  <aside id="panel"></aside>
+  <section id="cards" aria-label="Skills"></section>
 </main>
+<dialog id="panel" aria-label="Skill"><div class="body" id="panel-body"></div></dialog>
 <div id="toast" role="status"></div>
 <script>
 "use strict";
@@ -152,10 +172,7 @@ const TOKEN = new URLSearchParams(location.search).get("token") || "";
 const SOURCES = ["project", "user", "synced", "plugin"];
 const POLL_MS = 4000;
 
-const state = { graph: null, tasks: [], usage: { status: "idle", skills: {} }, signature: "", positions: {}, tab: "project",
-  flow: null, selected: null, loading: false };
-const nodeOf = new Map();   // skill id -> drawflow node id
-const skillOf = new Map();  // drawflow node id -> skill id
+const state = { graph: null, tasks: [], usage: { status: "idle", skills: {} }, signature: "", tab: "project", tab_open: null, selected: null };
 const $ = (id) => document.getElementById(id);
 
 async function api(path, body) {
@@ -183,10 +200,6 @@ function el(tag, attrs = {}, ...children) {
   return node;
 }
 
-function escapeHtml(text) {
-  return String(text).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-}
-
 let toastTimer;
 function toast(text) {
   const box = $("toast");
@@ -200,6 +213,7 @@ async function sendTask(task, said) {
   try {
     await api("/task", task);
     toast(`Sent to Claude: ${said}`);
+    refresh(true);
     return true;
   } catch (error) {
     toast(`Not sent: ${error.message}`);
@@ -213,211 +227,96 @@ const skillById = (id) => state.graph.skills.find((s) => s.id === id);
 const findingsFor = (id) => state.graph.findings.filter((f) => f.skill === id);
 const wiresFrom = (id) => state.graph.wires.filter((w) => w.from === id).sort((a, b) => a.order - b.order);
 const wiresTo = (id) => state.graph.wires.filter((w) => w.to === id);
-
-function signature(graph) {
-  return JSON.stringify([graph.skills.map((s) => [s.id, s.modified]), graph.wires.map((w) => [w.from, w.to, w.broken])]);
-}
-
-const flowName = (flow) => flow.entry.join(" / ");
-const currentFlow = () => state.graph.flows.find((flow) => flowName(flow) === state.flow);
-
-// What the canvas shows: one flow with its broken calls, or else the project's skills, what they
-// call, and anything dragged onto it.
-function canvasIds() {
-  const flow = currentFlow();
-  if (flow) {
-    const ids = new Set(flow.skills.filter(skillById));
-    for (const id of flow.skills) for (const wire of wiresFrom(id)) if (wire.broken) ids.add(`missing:${wire.to}`);
-    return [...ids];
-  }
-  const ids = new Set(state.graph.skills.filter((s) => s.source === "project").map((s) => s.id));
-  for (const id of [...ids]) for (const wire of wiresFrom(id)) ids.add(wire.broken ? `missing:${wire.to}` : wire.to);
-  for (const id of Object.keys(state.positions)) if (skillById(id)) ids.add(id);
-  for (const id of Object.keys(state.positions)) if (skillById(id))
-    for (const wire of wiresFrom(id)) if (ids.has(wire.to)) ids.add(wire.to);
-  return [...ids];
-}
-
-// A first position for nodes the layout does not know: columns by how deep the calls go.
-function autoPositions(ids) {
-  const depth = {};
-  const visit = (id, d, seen) => {
-    if (seen.has(id)) return;
-    seen.add(id);
-    depth[id] = Math.max(depth[id] ?? 0, d);
-    for (const wire of wiresFrom(id)) visit(wire.broken ? `missing:${wire.to}` : wire.to, d + 1, seen);
-  };
-  const called = new Set(state.graph.wires.map((w) => w.to));
-  for (const id of ids) if (!called.has(id)) visit(id, 0, new Set());
-  for (const id of ids) if (depth[id] === undefined) depth[id] = 0;
-  // Nodes with a saved place keep it; the rest take the next free row in their column.
-  const taken = ids.filter((id) => state.positions[id]).map((id) => state.positions[id]);
-  const clashes = ([x, y]) => taken.some(([tx, ty]) => Math.abs(tx - x) < 230 && Math.abs(ty - y) < 95);
-  const result = {};
-  for (const id of ids.filter((id) => !state.positions[id])) {
-    const spot = [40 + depth[id] * 290, 30];
-    while (clashes(spot)) spot[1] += 110;
-    taken.push(spot);
-    result[id] = spot;
-  }
-  return result;
-}
-
-function nodeHtml(id) {
-  if (id.startsWith("missing:")) {
-    return `<div class="node-title"><span>${escapeHtml(id.slice(8))}</span></div><div class="node-meta">not in scope</div>`;
-  }
-  const skill = skillById(id);
-  const levels = { error: 0, warning: 0, info: 0 };
-  for (const f of findingsFor(id)) levels[f.level] += 1;
-  const badges = Object.entries(levels).filter(([, n]) => n).map(([level, n]) => `<span class="badge ${level}">${n} ${level}</span>`).join("");
-  const where = skill.plugin ? `${skill.source} · ${skill.plugin}` : skill.source;
-  const used = usageOf(id);
-  const uses = used ? `<span title="Last used: ${escapeHtml(used.last_used)}">${used.uses}× used</span>` : "";
-  return `<div class="node-title"><span class="dot ${skill.source}"></span><span title="${escapeHtml(id)}">${escapeHtml(skill.name)}</span></div>
-    <div class="node-meta"><span>${escapeHtml(where)}</span>${uses}<span>≈${skill.tokens.body} tok</span>${badges}</div>`;
-}
-
+// A wire not judged yet counts as a call, as the flows do.
+const callsFrom = (id) => wiresFrom(id).filter((w) => !w.broken && w.kind !== "mention");
+const mentionsFrom = (id) => wiresFrom(id).filter((w) => w.broken || w.kind === "mention");
 const usageOf = (id) => state.usage.skills?.[id];
 const neverUsed = (id) => usageOf(id)?.uses === 0;
+const unjudged = () => state.graph.wires.filter((w) => !w.broken && !w.kind && skillById(w.from)?.source === "project").length;
+const pendingFrom = (id) => state.tasks.filter((t) => (t.kind === "link" || t.kind === "unlink") && t.from === id);
 
-// ---- canvas --------------------------------------------------------------------------------
-
-const editor = new Drawflow($("drawflow"));
-editor.reroute = false;
-editor.zoom_min = 0.3;
-editor.start();
-
-function drawCanvas() {
-  state.loading = true;
-  editor.clear();
-  nodeOf.clear();
-  skillOf.clear();
-  const ids = canvasIds();
-  const fallback = autoPositions(ids);
-  for (const id of ids) {
-    const [x, y] = state.positions[id] || fallback[id];
-    const skill = skillById(id);
-    const missing = id.startsWith("missing:");
-    const classes = missing ? "missing" : `${skill.writable ? "writable" : "readonly"}${neverUsed(id) ? " unused" : ""}`;
-    const node = editor.addNode(id, 1, missing ? 0 : 1, x, y, classes, { id }, nodeHtml(id));
-    nodeOf.set(id, node);
-    skillOf.set(String(node), id);
-  }
-  for (const wire of state.graph.wires) {
-    const to = wire.broken ? `missing:${wire.to}` : wire.to;
-    if (!nodeOf.has(wire.from) || !nodeOf.has(to)) continue;
-    editor.addConnection(nodeOf.get(wire.from), nodeOf.get(to), "output_1", "input_1");
-    if (wire.broken) connectionPath(nodeOf.get(wire.from), nodeOf.get(to))?.classList.add("broken");
-  }
-  // Wires a task has asked for, or asked to remove, show as pending until the text says otherwise.
-  for (const task of state.tasks.filter((t) => t.kind === "link" || t.kind === "unlink")) {
-    if (!nodeOf.has(task.from) || !nodeOf.has(task.to)) continue;
-    const [out, into] = [nodeOf.get(task.from), nodeOf.get(task.to)];
-    if (task.kind === "link" && !hasWire(task.from, task.to)) editor.addConnection(out, into, "output_1", "input_1");
-    connectionPath(out, into)?.classList.add("pending");
-  }
-  $("empty").classList.toggle("shown", ids.length === 0);
-  state.loading = false;
+function signature(graph) {
+  return JSON.stringify([graph.skills.map((s) => [s.id, s.modified]), graph.wires.map((w) => [w.from, w.to, w.broken, w.kind])]);
 }
 
-// Zooms and pans so every node on the canvas fits, never past 100%. Drawflow scales around the
-// canvas centre, so the pan is worked out from there.
-function fitView(padding = 40) {
-  const boxes = [...nodeOf.values()].map((node) => {
-    const element = document.getElementById(`node-${node}`);
-    const { pos_x: x, pos_y: y } = editor.getNodeFromId(node);
-    return [x, y, x + element.offsetWidth, y + element.offsetHeight];
-  });
-  if (!boxes.length) return;
-  const [left, top] = [Math.min(...boxes.map((b) => b[0])), Math.min(...boxes.map((b) => b[1]))];
-  const [right, bottom] = [Math.max(...boxes.map((b) => b[2])), Math.max(...boxes.map((b) => b[3]))];
-  const { clientWidth: width, clientHeight: height } = editor.precanvas;
-  const zoom = Math.max(editor.zoom_min, Math.min(1, (width - 2 * padding) / (right - left), (height - 2 * padding) / (bottom - top)));
-  const [cx, cy] = [width / 2, height / 2];
-  editor.zoom = editor.zoom_last_value = zoom;
-  editor.canvas_x = (width - (right - left) * zoom) / 2 - cx - (left - cx) * zoom;
-  editor.canvas_y = (height - (bottom - top) * zoom) / 2 - cy - (top - cy) * zoom;
-  editor.precanvas.style.transform = `translate(${editor.canvas_x}px, ${editor.canvas_y}px) scale(${zoom})`;
+// ---- cards ---------------------------------------------------------------------------------
+
+// The top level: each flow's entry — a project skill nothing calls, or the first of a loop that only
+// calls itself. Everything else sits inside the cards that call it.
+function topLevel() {
+  return state.graph.flows.map((flow) => flow.entry[0]).sort((a, b) => a.localeCompare(b));
 }
 
-function connectionPath(out, into) {
-  return document.querySelector(`.connection.node_out_node-${out}.node_in_node-${into}`);
+// The description's first sentence — what the skill does, before its "Use when…" triggers.
+function summaryOf(skill) {
+  const text = (skill.frontmatter?.description || "").trim();
+  const first = text.match(/^.+?[.!?](?=\s|$)/s);
+  return (first ? first[0] : text).replace(/\s+/g, " ");
 }
 
-function hasWire(from, to) {
-  return state.graph.wires.some((w) => w.from === from && (w.to === to || `missing:${w.to}` === to));
+function cardHead(id, extra = null) {
+  const skill = skillById(id);
+  const used = usageOf(id);
+  const worst = ["error", "warning", "info"].find((level) => findingsFor(id).some((f) => f.level === level));
+  return el("div", { class: "card-head", title: skill.frontmatter?.description || id, onclick: (event) => { event.stopPropagation(); openSkill(id); } },
+    el("span", { class: `dot ${skill.source}` }),
+    el("span", { class: "name" }, skill.source === "project" ? skill.name : id),
+    el("span", { class: "meta" },
+      used ? el("span", { title: used.uses ? `Last used ${used.last_used}` : "Never used" }, `${used.uses}×`) : null,
+      worst ? el("span", { class: `badge ${worst}` }, worst) : null,
+      extra));
 }
 
-editor.on("connectionCreated", async ({ output_id, input_id }) => {
-  if (state.loading) return;
-  const from = skillOf.get(String(output_id));
-  const to = skillOf.get(String(input_id));
-  const drop = () => { state.loading = true; editor.removeSingleConnection(output_id, input_id, "output_1", "input_1"); state.loading = false; };
-  if (hasWire(from, to)) return;
-  if (!skillById(from)?.writable) {
-    drop();
-    return toast(`${from} is read-only: only the project's own skills can call new skills.`);
+// A skill's card: the skills it calls nested inside in call order, its mentions as chips. A skill
+// shown in full once is collapsed where it appears again, and can be opened in place. A read-only
+// skill is a leaf: only the project's own wires are judged, so its insides would be guesses.
+function card(id, path, shown) {
+  const skill = skillById(id);
+  if (!skill.writable) {
+    return el("div", { class: `card readonly${state.selected === id ? " selected" : ""}`, "data-id": id }, cardHead(id));
   }
-  if (to.startsWith("missing:") || from === to) return drop();
-  connectionPath(output_id, input_id)?.classList.add("pending");
-  if (!(await sendTask({ kind: "link", from, to }, `let ${from} call ${to}`))) drop();
-});
-
-editor.on("connectionRemoved", async ({ output_id, input_id }) => {
-  if (state.loading) return;
-  const from = skillOf.get(String(output_id));
-  const to = skillOf.get(String(input_id));
-  if (!from || !to || !hasWire(from, to)) return;
-  if (!skillById(from)?.writable) {
-    toast(`${from} is read-only; the wire stays until its text changes.`);
-    return drawCanvas();
+  const classes = ["card", skill.writable ? "" : "readonly", neverUsed(id) ? "unused" : "", state.selected === id ? "selected" : ""];
+  const node = el("div", { class: classes.filter(Boolean).join(" "), "data-id": id });
+  if (shown.has(id)) {
+    const open = el("button", { class: "toggle", title: "Shown in full elsewhere; open it here", onclick: (event) => {
+      event.stopPropagation();
+      node.replaceWith(card(id, path, new Set()));
+    } }, "▸");
+    node.append(cardHead(id, open));
+    return node;
   }
-  const target = to.startsWith("missing:") ? to.slice(8) : to;
-  await sendTask({ kind: "unlink", from, to: target }, `stop ${from} calling ${target}`);
-});
-
-let saveTimer;
-editor.on("nodeMoved", () => {
-  if (state.loading) return;
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(saveLayout, 400);
-});
-
-// Starts from the saved places, so nodes a flow hides keep theirs.
-function saveLayout(added = {}) {
-  const positions = Object.fromEntries(Object.entries(state.positions).filter(([id]) => skillById(id)));
-  for (const [id, node] of nodeOf) {
-    if (id.startsWith("missing:")) continue;
-    const data = editor.getNodeFromId(node);
-    positions[id] = [Math.round(data.pos_x), Math.round(data.pos_y)];
+  shown.add(id);
+  node.append(cardHead(id));
+  const summary = summaryOf(skill);
+  if (summary) node.append(el("div", { class: "summary" }, summary));
+  for (const wire of callsFrom(id)) {
+    if (!skillById(wire.to)) continue;
+    if (path.includes(wire.to) || wire.to === id) node.append(el("div", { class: "loop", title: wire.reason || "" }, `↺ ${wire.to} (loop)`));
+    else node.append(card(wire.to, [...path, id], shown));
   }
-  Object.assign(positions, added);
-  state.positions = positions;
-  api("/layout", { positions }).catch((error) => toast(`Layout not saved: ${error.message}`));
+  const chips = [
+    ...mentionsFrom(id).map((wire) => wire.broken
+      ? el("span", { class: "chip broken", title: "Named, but no such skill is in scope" }, wire.to)
+      : el("span", { class: "chip", title: wire.reason || "", onclick: (event) => { event.stopPropagation(); openSkill(wire.to); } }, wire.to)),
+    ...pendingFrom(id).map((task) => el("span", { class: "chip pending", title: "Sent to Claude, not in the text yet" },
+      `${task.kind === "link" ? "+" : "−"} ${task.to}`)),
+  ];
+  if (chips.length) node.append(el("div", { class: "chips" }, "mentions", ...chips));
+  return node;
 }
 
-// Double-click, not select: a select starts every drag, and opening the panel mid-drag moves the canvas.
-$("drawflow").addEventListener("dblclick", (event) => {
-  const node = event.target.closest(".drawflow-node");
-  const id = node && skillOf.get(node.id.replace("node-", ""));
-  if (id && !id.startsWith("missing:")) openSkill(id);
-});
-
-// Deleting a node would only hide it, and its wires would read as unlinking: keep nodes.
-document.addEventListener("keydown", (event) => {
-  if ((event.key === "Delete" || event.key === "Backspace") && editor.node_selected &&
-      !["INPUT", "TEXTAREA"].includes(document.activeElement?.tagName)) {
-    event.stopPropagation();
-    event.preventDefault();
-  }
-}, true);
+function drawCards() {
+  const shown = new Set();
+  const cards = topLevel().map((id) => card(id, [], shown));
+  $("cards").replaceChildren(...(cards.length ? cards : [el("div", { id: "empty" },
+    el("p", {}, el("strong", {}, "This project has no skills of its own yet.")),
+    el("p", {}, "Create one with ", el("em", {}, "New skill"), ", or open a skill in the palette and copy it into the project."))]));
+}
 
 // ---- palette -------------------------------------------------------------------------------
 
 function drawTabs() {
-  const tabs = $("tabs");
-  tabs.replaceChildren(...SOURCES.map((source) => {
+  $("tabs").replaceChildren(...SOURCES.map((source) => {
     const count = state.graph.skills.filter((s) => s.source === source).length;
     return el("button", { "aria-pressed": String(state.tab === source), onclick: () => { state.tab = source; drawPalette(); } },
       `${source} ${count}`);
@@ -433,55 +332,180 @@ function drawPalette() {
     .sort((a, b) => a.id.localeCompare(b.id));
   $("palette-list").replaceChildren(...list.map((skill) => {
     const worst = ["error", "warning", "info"].find((level) => findingsFor(skill.id).some((f) => f.level === level));
-    return el("li", {
-      draggable: "true", title: skill.frontmatter?.description || "",
-      ondragstart: (event) => event.dataTransfer.setData("text/plain", skill.id),
-      onclick: () => openSkill(skill.id),
-    }, el("span", { class: `dot ${skill.source}` }), el("span", { class: "name" }, skill.id),
-       worst ? el("span", { class: `badge ${worst}` }, worst) : null);
+    return el("li", { title: skill.frontmatter?.description || "", onclick: () => openSkill(skill.id) },
+      el("span", { class: `dot ${skill.source}` }), el("span", { class: "name" }, skill.id),
+      worst ? el("span", { class: `badge ${worst}` }, worst) : null);
   }));
 }
 
 $("search").addEventListener("input", drawPalette);
 
-$("drawflow").addEventListener("dragover", (event) => event.preventDefault());
-$("drawflow").addEventListener("drop", (event) => {
-  event.preventDefault();
-  const id = event.dataTransfer.getData("text/plain");
-  if (!skillById(id)) return;
-  const scale = editor.precanvas.clientWidth / (editor.precanvas.clientWidth * editor.zoom);
-  const box = editor.precanvas.getBoundingClientRect();
-  const x = event.clientX * scale - box.x * scale;
-  const y = event.clientY * scale - box.y * scale;
-  saveLayout({ [id]: [Math.round(x), Math.round(y)] });
-  state.flow = null;
-  drawFlows();
-  drawCanvas();
-});
+// ---- markdown ------------------------------------------------------------------------------
+
+// Enough markdown to read a skill: headings, paragraphs, nested lists, tables, fenced code, quotes,
+// rules, and inline code, bold, italic and links. Every piece of text is escaped before any tag is
+// added, so a skill's text can never become markup; links are shown, not followed.
+const escapeHtml = (text) => String(text).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+function inline(text) {
+  const codes = [];
+  let html = text.replace(/`([^`]+)`/g, (_, code) => `\u0000${codes.push(code) - 1}\u0000`);
+  html = escapeHtml(html)
+    .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, label, url) => `<span class="link" title="${url}">${label}</span>`)
+    .replace(/\*\*(.+?)\*\*|__(.+?)__/g, (_, a, b) => `<strong>${a ?? b}</strong>`)
+    .replace(/(^|[^*\w])\*(?!\s)(.+?)\*(?!\w)|(^|\W)_(?!\s)(.+?)_(?!\w)/g, (_, p1, a, p2, b) => `${p1 ?? p2}<em>${a ?? b}</em>`);
+  return html.replace(/\u0000(\d+)\u0000/g, (_, n) => `<code>${escapeHtml(codes[n])}</code>`);
+}
+
+const LIST_ITEM = /^(\s*)([-*+]|\d+[.)])\s+(.*)$/;
+const TABLE_RULE = /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/;
+const BLOCK_START = /^(```|#{1,6}\s|>|\s*([-*+]|\d+[.)])\s|\s*\|)/;
+
+function cells(line) {
+  return line.trim().replace(/^\||\|$/g, "").split("|").map((cell) => inline(cell.trim()));
+}
+
+function list(items) {
+  const html = [];
+  const open = [];
+  for (const { indent, ordered, text } of items) {
+    while (open.length && indent < open.at(-1).indent) html.push(`</li></${open.pop().tag}>`);
+    if (!open.length || indent > open.at(-1).indent) {
+      const tag = ordered ? "ol" : "ul";
+      open.push({ indent, tag });
+      html.push(`<${tag}>`);
+    } else {
+      html.push("</li>");
+    }
+    const task = text.match(/^\[([ xX])\]\s+(.*)$/);
+    html.push(task ? `<li class="task"><span class="box">${task[1].trim() ? "☑" : "☐"}</span> ${inline(task[2])}` : `<li>${inline(text)}`);
+  }
+  while (open.length) html.push(`</li></${open.pop().tag}>`);
+  return html.join("");
+}
+
+function markdownHtml(source) {
+  const lines = source.replace(/\r\n?/g, "\n").split("\n");
+  const html = [];
+  for (let i = 0; i < lines.length;) {
+    const line = lines[i];
+    if (!line.trim()) { i += 1; continue; }
+    if (line.startsWith("```")) {
+      const code = [];
+      for (i += 1; i < lines.length && !lines[i].startsWith("```"); i += 1) code.push(lines[i]);
+      i += 1;
+      html.push(`<pre><code>${escapeHtml(code.join("\n"))}</code></pre>`);
+      continue;
+    }
+    const heading = line.match(/^(#{1,6})\s+(.*?)\s*#*$/);
+    if (heading) {
+      html.push(`<h${heading[1].length}>${inline(heading[2])}</h${heading[1].length}>`);
+      i += 1;
+      continue;
+    }
+    if (/^\s*([-*_])(\s*\1){2,}\s*$/.test(line)) { html.push("<hr>"); i += 1; continue; }
+    if (line.startsWith(">")) {
+      const quoted = [];
+      for (; i < lines.length && lines[i].startsWith(">"); i += 1) quoted.push(lines[i].replace(/^>\s?/, ""));
+      html.push(`<blockquote>${markdownHtml(quoted.join("\n"))}</blockquote>`);
+      continue;
+    }
+    if (line.trim().startsWith("|") && TABLE_RULE.test(lines[i + 1] || "")) {
+      const head = cells(line);
+      const rows = [];
+      for (i += 2; i < lines.length && lines[i].trim().startsWith("|"); i += 1) rows.push(cells(lines[i]));
+      html.push(`<table><thead><tr>${head.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>${
+        rows.map((row) => `<tr>${row.map((c) => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table>`);
+      continue;
+    }
+    if (LIST_ITEM.test(line)) {
+      const items = [];
+      for (; i < lines.length; i += 1) {
+        const item = lines[i].match(LIST_ITEM);
+        if (item) items.push({ indent: item[1].length, ordered: /\d/.test(item[2]), text: item[3] });
+        else if (lines[i].trim() && /^\s+/.test(lines[i]) && items.length) items.at(-1).text += ` ${lines[i].trim()}`;
+        else break;
+      }
+      html.push(list(items));
+      continue;
+    }
+    const paragraph = [];
+    for (; i < lines.length && lines[i].trim() && !(paragraph.length && BLOCK_START.test(lines[i])); i += 1) paragraph.push(lines[i].trim());
+    html.push(`<p>${inline(paragraph.join(" "))}</p>`);
+  }
+  return html.join("\n");
+}
+
+function markdown(source) {
+  const box = document.createElement("div");
+  box.innerHTML = markdownHtml(source);
+  return [...box.childNodes];
+}
 
 // ---- the skill panel -----------------------------------------------------------------------
 
-function showPanel(...children) {
-  $("main").classList.remove("no-panel");
-  $("panel").replaceChildren(el("button", { class: "close", onclick: closePanel, "aria-label": "Close" }, "×"), ...children);
+// The skill, and the forms that change it, open in a dialog over the cards: a head, then one tab
+// at a time. A redraw of the same dialog keeps its tab and its scroll place.
+function showPanel({ key, title, sub = null, summary = null, facts = [], tabs }) {
+  const body = $("panel-body");
+  const same = $("panel").open && body.dataset.key === key;
+  const scrolled = same ? body.querySelector("[role=tabpanel]")?.scrollTop || 0 : 0;
+  if (!same || !tabs.some((tab) => tab.key === state.tab_open)) state.tab_open = tabs[0].key;
+  body.dataset.key = key;
+  const built = {};
+  const draw = () => {
+    const current = tabs.find((tab) => tab.key === state.tab_open);
+    const list = tabs.length > 1 ? el("div", { role: "tablist" }, tabs.map((tab) =>
+      el("button", { role: "tab", "aria-selected": String(tab === current), onclick: () => { state.tab_open = tab.key; draw(); } }, tab.label))) : null;
+    body.replaceChildren(
+      el("div", { class: "head" }, el("button", { class: "close", onclick: closePanel, "aria-label": "Close" }, "×"),
+        el("h2", {}, title), sub ? el("div", { class: "sub" }, sub) : null, summary ? el("p", { class: "summary" }, summary) : null, facts),
+      list || el("div"),
+      el("div", { role: "tabpanel" }, built[current.key] ||= current.content()));
+  };
+  draw();
+  if (!$("panel").open) $("panel").showModal();
+  body.querySelector("[role=tabpanel]").scrollTop = scrolled;
 }
 
 function closePanel() {
-  state.selected = null;
-  $("main").classList.add("no-panel");
+  $("panel").close();
 }
 
-function wireList(wires, pick) {
+$("panel").addEventListener("close", () => {
+  state.selected = null;
+  drawCards();
+});
+
+$("panel").addEventListener("click", (event) => {
+  if (event.target === $("panel")) closePanel();
+});
+
+function wireList(wires, pick, unlinkFrom = null) {
   if (!wires.length) return el("p", { class: "sub" }, "None.");
   return el("ol", {}, wires.map((wire) => {
     const id = pick(wire);
-    return el("li", {}, el("a", { class: `wire${wire.broken ? " broken" : ""}`, onclick: () => !wire.broken && openSkill(id) },
-      id, wire.broken ? " (not in scope)" : ""), el("span", { class: "sub" }, ` line ${wire.line}`));
+    return el("li", { title: wire.reason || "" },
+      el("a", { class: `wire${wire.broken ? " broken" : ""}`, onclick: () => !wire.broken && openSkill(id) },
+        id, wire.broken ? " (not in scope)" : ""),
+      el("span", { class: "sub" }, `${wire.kind ? ` · ${wire.kind}` : ""} · line ${wire.lines.join(", ")}`),
+      unlinkFrom ? el("button", { class: "unlink", title: `Remove every mention of ${wire.to}`, "aria-label": `Stop naming ${wire.to}`,
+        onclick: () => sendTask({ kind: "unlink", from: unlinkFrom, to: wire.to }, `stop ${unlinkFrom} naming ${wire.to}`) }, "×") : null);
   }));
+}
+
+function callForm(skill) {
+  const named = new Set(wiresFrom(skill.id).map((w) => w.to));
+  const options = state.graph.skills.filter((s) => s.id !== skill.id && !named.has(s.id)).sort((a, b) => a.id.localeCompare(b.id));
+  const pick = el("select", { "aria-label": "Skill to call" }, el("option", { value: "" }, "Call another skill…"),
+    options.map((s) => el("option", { value: s.id }, s.id)));
+  return [pick, el("div", { class: "row" }, el("button", { onclick: () => pick.value &&
+    sendTask({ kind: "link", from: skill.id, to: pick.value }, `let ${skill.id} call ${pick.value}`) }, "Add call"))];
 }
 
 async function openSkill(id) {
   state.selected = id;
+  drawCards();
   let skill;
   try {
     skill = await api(`/skill?id=${encodeURIComponent(id)}`);
@@ -491,37 +515,37 @@ async function openSkill(id) {
   if (state.selected !== id) return;
   const description = skill.frontmatter?.description || "";
   const findings = findingsFor(id);
-  const parts = [
-    el("h2", {}, skill.name),
-    el("div", { class: "sub" }, `${skill.id} · ${skill.writable ? "project, editable" : `${skill.source}, read-only`}`),
-    el("dl", {},
-      el("dt", {}, "Path"), el("dd", { class: "sub" }, skill.real_path),
-      el("dt", {}, "Tokens"), el("dd", {}, `≈${skill.tokens.listing} listing · ≈${skill.tokens.body} body`),
-      el("dt", {}, "Size"), el("dd", {}, `${skill.size} bytes`),
-      el("dt", {}, "Modified"), el("dd", {}, new Date(skill.modified).toLocaleString()),
-      ...usageRows(id)),
-    el("h3", {}, `Findings (${findings.length})`),
-    findings.length
-      ? el("ul", { class: "findings" }, findings.map((f) => el("li", {}, el("span", { class: `badge ${f.level}` }, f.level), " ",
-          f.message, f.line ? el("span", { class: "sub" }, ` line ${f.line}`) : null)))
-      : el("p", { class: "sub" }, "None."),
-    el("h3", {}, "Calls, in order"), wireList(wiresFrom(id), (w) => w.to),
-    el("h3", {}, "Called by"), wireList(wiresTo(id), (w) => w.from),
+  const facts = [
+    el("div", { class: "facts" }, ...usageFacts(id), el("span", { title: "The skill's text, loaded when it runs" }, `≈${skill.tokens.body} tokens`)),
+    findings.length ? el("ul", { class: "findings" }, findings.map((f) => el("li", {}, el("span", { class: `badge ${f.level}` }, f.level), " ",
+      f.message, f.line ? el("span", { class: "sub" }, ` line ${f.line}`) : null))) : null,
   ];
-  if (skill.writable) parts.push(...editForm(skill, description), ...improveForm(skill));
-  else parts.push(...copyForm(skill));
-  parts.push(el("h3", {}, "Text"), el("pre", {}, skill.body));
-  if (skill.writable) parts.push(deleteButton(skill));
-  showPanel(...parts);
+  const links = () => [
+    el("h3", {}, "Names, in order"), wireList(wiresFrom(id), (w) => w.to, skill.writable ? id : null),
+    ...(skill.writable ? callForm(skill) : []),
+    el("h3", {}, "Named by"), wireList(wiresTo(id), (w) => w.from),
+  ];
+  const read = () => [
+    el("div", { class: "md" }, markdown(skill.body)),
+    el("p", { class: "sub file" }, `${skill.real_path} · ${skill.size} bytes · changed ${new Date(skill.modified).toLocaleString()}`),
+  ];
+  const tabs = [{ key: "read", label: "Skill", content: read }];
+  if (skill.writable) {
+    tabs.push({ key: "edit", label: "Edit", content: () => [...links(), ...editForm(skill, description), ...improveForm(skill), deleteZone(skill)] });
+  } else {
+    tabs.push({ key: "copy", label: "Links & copy", content: () => [...links(), ...copyForm(skill)] });
+  }
+  showPanel({ key: `skill:${id}`, title: skill.name, summary: summaryOf(skill), facts, tabs,
+    sub: `${skill.id} · ${skill.writable ? "project, editable" : `${skill.source}, read-only`}` });
 }
 
-function usageRows(id) {
+function usageFacts(id) {
   const used = usageOf(id);
-  if (!used) return [el("dt", {}, "Used"), el("dd", { class: "sub" }, state.usage.status === "loading" ? "Fetching…" : "Not in the report")];
+  if (!used) return [el("span", { class: "sub" }, state.usage.status === "loading" ? "Fetching usage…" : "Not in the usage report")];
   return [
-    el("dt", {}, "Used"), el("dd", {}, used.uses ? `${used.uses}× · last ${used.last_used}` : "Never"),
-    el("dt", {}, "Last 7 days"), el("dd", {}, used.tokens_7d ? `${used.tokens_7d} tokens` : "—"),
-    el("dt", {}, "Every turn"), el("dd", {}, `${used.context} tokens in the skill listing`),
+    el("span", {}, used.uses ? `${used.uses}× used · last ${used.last_used}` : "Never used"),
+    used.tokens_7d ? el("span", {}, `${used.tokens_7d} tokens in 7 days`) : null,
+    el("span", { title: "The skill's line in the listing, sent every turn" }, `${used.context} tokens every turn`),
   ];
 }
 
@@ -534,13 +558,15 @@ function improveForm(skill) {
   ];
 }
 
-function deleteButton(skill) {
+function deleteZone(skill) {
   const callers = wiresTo(skill.id).map((w) => w.from);
   const ask = () => {
-    const named = callers.length ? `\n\nCalled by: ${callers.join(", ")}. Claude will ask whether to remove those mentions too.` : "";
+    const named = callers.length ? `\n\nNamed by: ${callers.join(", ")}. Claude will ask whether to remove those mentions too.` : "";
     if (confirm(`Delete ${skill.id}?${named}`)) sendTask({ kind: "delete", skill: skill.id }, `delete ${skill.id}`);
   };
-  return el("div", { class: "row" }, el("button", { class: "danger", onclick: ask }, "Delete skill"));
+  return el("div", { class: "danger-zone" }, el("div", { class: "row" },
+    el("span", { class: "sub" }, callers.length ? `Named by ${callers.length} skill${callers.length === 1 ? "" : "s"}.` : "Nothing names it."),
+    el("button", { class: "danger", onclick: ask }, "Delete skill")));
 }
 
 function editForm(skill, description) {
@@ -576,24 +602,15 @@ function copyForm(skill) {
 
 $("new-skill").addEventListener("click", () => {
   state.selected = null;
+  drawCards();
   const name = el("input", { placeholder: "git-finish" });
   const description = el("textarea", { rows: "4", placeholder: "What it does, and when to use it." });
   const intent = el("textarea", { rows: "4", placeholder: "Anything Claude should know when writing it." });
-  showPanel(el("h2", {}, "New skill"),
+  showPanel({ key: "new", title: "New skill", sub: "Claude writes it with you in the chat.", tabs: [{ key: "new", label: "New", content: () => [
     el("label", {}, "Name"), name, el("label", {}, "Description"), description, el("label", {}, "Intent"), intent,
     el("div", { class: "row" }, el("button", { class: "primary", onclick: () => sendTask(
       { kind: "new", name: name.value.trim(), description: description.value, intent: intent.value }, `write ${name.value.trim()}`) },
-      "Send to Claude")));
-});
-
-$("reset-layout").addEventListener("click", async () => {
-  state.positions = {};
-  editor.zoom_reset();
-  editor.canvas_x = 0;
-  editor.canvas_y = 0;
-  editor.precanvas.style.transform = "translate(0px, 0px) scale(1)";
-  await api("/layout", { positions: {} }).catch((error) => toast(`Layout not saved: ${error.message}`));
-  drawCanvas();
+      "Send to Claude"))] }] });
 });
 
 $("analyse").addEventListener("click", () => sendTask({ kind: "analyse" }, "analyse this project's skills"));
@@ -622,20 +639,14 @@ function drawHeader() {
   const count = (level) => state.graph.findings.filter((f) => f.level === level).length;
   const active = state.tasks.filter((t) => t.state === "active").length;
   const waiting = state.tasks.length - active;
+  const open = unjudged();
+  $("analyse").title = open ? `${open} wires not yet judged call or mention; Analyse has Claude judge them`
+    : "Every wire is judged call or mention";
   $("counts").replaceChildren(el("span", {},
     el("span", {}, `${state.graph.skills.filter((s) => s.source === "project").length} project skills`),
     state.tasks.length ? el("span", { title: "Tasks for the Claude session" },
       ` · ${[active && `${active} in progress`, waiting && `${waiting} waiting`].filter(Boolean).join(", ")}`) : null),
     ...["error", "warning", "info"].filter((level) => count(level)).map((level) => el("span", { class: `badge ${level}` }, `${count(level)} ${level}`)));
-}
-
-function drawFlows() {
-  const pick = (name) => () => { state.flow = name; drawFlows(); drawCanvas(); fitView(); };
-  const button = (name, label, title) =>
-    el("button", { "aria-pressed": String(state.flow === name), title, onclick: pick(name) }, label);
-  $("flows").replaceChildren(button(null, "All", "Every project skill, and anything dragged onto the canvas"),
-    ...state.graph.flows.map((flow) => button(flowName(flow), `${flowName(flow)} ${flow.skills.length}`,
-      `Starts at ${flowName(flow)}: ${flow.skills.join(", ")}`)));
 }
 
 function drawUsageButton() {
@@ -670,18 +681,14 @@ async function refresh(force = false) {
   state.graph = graph;
   state.tasks = inFlight.tasks;
   state.signature = next;
-  if (!currentFlow()) state.flow = null;
   drawHeader();
-  drawFlows();
   drawPalette();
-  drawCanvas();
-  if (state.selected) openSkill(state.selected);
+  drawCards();
+  const typing = $("panel").contains(document.activeElement) && ["INPUT", "TEXTAREA"].includes(document.activeElement.tagName);
+  if (state.selected && !typing) openSkill(state.selected);
 }
 
 (async () => {
-  try {
-    state.positions = (await api("/layout")).positions || {};
-  } catch { state.positions = {}; }
   await refresh(true);
   state.poller = setInterval(() => document.visibilityState === "visible" && refresh(), POLL_MS);
 })();
