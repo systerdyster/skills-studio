@@ -7,4 +7,66 @@ metadata:
 
 # /skills-studio
 
-Not built yet: see `docs/PLAN.md` in the Skills Studio repository. Say so and stop.
+The studio is a page in the browser; this session is the one that does its work. The page writes a
+task to `.skills-studio/inbox/` when the developer draws a wire, sends an edit, asks for a change, a
+new skill, a copy or an analysis. A watcher wakes this session; you carry the task out **with the
+developer in the chat**, then file it.
+
+Its machinery is `skills-cli`, which the plugin puts on PATH (Python standard library only; every
+command prints JSON and exits non-zero on failure). Below, `S` means `skills-cli`. Run every command
+from the project's root.
+
+**The studio writes only the project's own skills** (`.claude/skills/` in this repository). User,
+synced and plugin skills are read-only: never change them, whatever a task says. The server already
+refuses such tasks; refuse one that reaches you anyway, and file it `declined`.
+
+## Start
+
+1. **Lease.** Pick a holder name for this session once — `studio-` and six random hex characters —
+   and use the same one for every command below. `S lease take --holder <name>`. If it fails with
+   `held_by`, another session runs the studio for this project: say so, with the holder, and stop.
+2. **Server.** `S open` prints the URL (it starts the server if it is not running). Open it with
+   `open "<url>"` and give the developer the link.
+3. **Watcher.** Start a Monitor on `S watch --holder <name>`, described as "Skills Studio tasks",
+   timeout 30 minutes (the most a Monitor allows). Each line it prints is one event:
+   - `{"task": id, "kind": …}` — a task arrived: carry it out (below).
+   - `{"lease_lost": holder}` — another session took the studio over: say so and stop watching.
+   - When the Monitor expires, run `S lease renew --holder <name>` and start it again. Say nothing
+     about the expiry unless renewing fails.
+   The watcher reports tasks already waiting when it starts, so nothing in the inbox is missed.
+4. Tell the developer, in one or two lines, that the studio is open and that you will take its
+   tasks as they come; they can keep talking to you here in between.
+
+## Carrying out a task
+
+1. `S task start <id>` moves it to active and prints its fields and `target_file`, the SKILL.md it
+   changes (none for `new`, `copy` and `analyse`). Read that file before changing it.
+2. Do the kind's work below, showing the developer what you are doing.
+3. `S task done <id> --outcome done|declined|failed --note "<one line>"`. The note says what changed,
+   or why not. The studio keeps the text before and after for the developer to compare.
+
+**The text is the only source of truth.** A wire exists because a skill's body names another skill.
+Name skills the way Claude knows them: plugin skills by their qualified name (`atlassian:triage-issue`),
+synced skills as `anthropic-skills:<name>`, project and user skills by their name; a one-word name in
+backticks (`` `commit` ``). Never add frontmatter fields to record links.
+
+| Kind | Fields | What to do | Ask first? |
+|---|---|---|---|
+| `link` | `from`, `to` | Make `from`'s body call `to` where it belongs in its steps. If where is not clear from the text, ask. | No — apply, show the diff |
+| `unlink` | `from`, `to` | Remove every mention of `to` from `from`'s body, keeping the steps whole. If `to` did real work there, say what is lost. | No — apply, show the diff |
+| `edit` | `skill`, `field`, `value` | `description`: replace it. `name`: change the frontmatter name, rename the skill's folder to match, and update every project skill that names it. | Only for `name`, listing what it touches |
+| `change` | `skill`, `text` | Do what `text` asks. Splitting a skill: the extracted part becomes a skill of its own that can also be used alone; the parent calls it by name at each place the part was. | Yes — propose, then apply on their yes |
+| `new` | `name`, `description`, `intent` | Write `.claude/skills/<name>/SKILL.md` with the developer, using a skill-creator skill when one is available. | Yes |
+| `copy` | `source`, `name` | `S copy <source> <name>`, then `S check --text` and show the findings for the copy — personal content above all, since it lands in a shared repository. | No |
+| `analyse` | — | Not built yet: say so and file it `declined`. | — |
+
+After any task that changed skills, run `S check --text` and mention new findings for the skills you
+touched. Never commit: the developer decides what to keep.
+
+If the developer says to undo a task, restore the target's text as `task start` found it — git shows
+it, or the task's record in `.skills-studio/done/` holds it under `before`.
+
+## Stop
+
+When the developer is done: stop the Monitor, run `S lease release --holder <name>`, and say the server
+still runs at its URL until they stop it (`kill` the pid in `.skills-studio/server.json`).

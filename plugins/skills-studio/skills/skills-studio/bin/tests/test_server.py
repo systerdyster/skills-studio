@@ -101,6 +101,12 @@ class ServerTest(unittest.TestCase):
         self.assertEqual(status, 403)
         self.assertEqual(self.inbox(), [])
 
+    def test_tasks_in_flight_are_listed(self):
+        _, task = self.request("POST", "/task", {"kind": "link", "from": "close-feature", "to": "brain-tdd"})
+        status, listed = self.request("GET", "/tasks")
+        self.assertEqual(status, 200)
+        self.assertEqual([(t["id"], t["state"]) for t in listed["tasks"]], [(task["id"], "waiting")])
+
     def test_layout_is_empty_before_any(self):
         self.assertEqual(self.request("GET", "/layout"), (200, {"positions": {}}))
 

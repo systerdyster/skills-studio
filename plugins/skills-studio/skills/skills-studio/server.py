@@ -15,7 +15,6 @@ import json
 import os
 import secrets
 import signal
-import socket
 import sys
 import threading
 import time
@@ -28,8 +27,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / "bin"))
 
 from sx import graph, layout  # noqa: E402
 from sx.layout import LayoutError  # noqa: E402
-from sx.state import StudioPaths  # noqa: E402
-from sx.tasks import TaskError, submit  # noqa: E402
+from sx.state import StudioPaths, running  # noqa: E402
+from sx.tasks import TaskError, in_flight, submit  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 MAX_BODY = 64 * 1024
@@ -108,6 +107,9 @@ def make_handler(project, home, token, port):
                 return self._json(200, _latest_analysis(paths))
             if url.path == "/layout":
                 return self._json(200, layout.read(paths))
+            if url.path == "/tasks":
+                return self._json(200, {"tasks": [{k: v for k, v in t.items() if k not in ("before", "after")}
+                                                  for t in in_flight(paths)]})
             return self._json(404, {"error": "not found"})
 
         def _vendor(self, name):
@@ -168,19 +170,6 @@ def serve(project, home, port=0, token=None):
     bound = httpd.server_address[1]
     httpd.RequestHandlerClass = make_handler(Path(project), Path(home), token, bound)
     return httpd, token, bound
-
-
-def running(paths):
-    """The studio already serving this project, from server.json: its process is alive and its port
-    answers. A record left by one that died is removed."""
-    try:
-        record = json.loads(paths.server.read_text())
-        os.kill(record["pid"], 0)
-        socket.create_connection(("127.0.0.1", record["port"]), timeout=1).close()
-        return record
-    except (OSError, ValueError, KeyError, TypeError):
-        paths.server.unlink(missing_ok=True)
-        return None
 
 
 def run(project, home, port=0):

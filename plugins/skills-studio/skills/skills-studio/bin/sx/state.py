@@ -1,5 +1,8 @@
 """Where the studio keeps its state: .skills-studio/ in the project, git-ignored."""
 
+import json
+import os
+import socket
 from pathlib import Path
 
 
@@ -8,8 +11,22 @@ class StudioPaths:
         self.project = Path(project)
         self.root = self.project / ".skills-studio"
         self.inbox = self.root / "inbox"
+        self.active = self.root / "active"
         self.done = self.root / "done"
         self.analysis = self.root / "analysis"
         self.server = self.root / "server.json"
         self.lease = self.root / "lease.json"
         self.layout = self.root / "layout.json"
+
+
+def running(paths):
+    """The studio already serving this project, from server.json: its process is alive and its port
+    answers. A record left by one that died is removed."""
+    try:
+        record = json.loads(paths.server.read_text())
+        os.kill(record["pid"], 0)
+        socket.create_connection(("127.0.0.1", record["port"]), timeout=1).close()
+        return record
+    except (OSError, ValueError, KeyError, TypeError):
+        paths.server.unlink(missing_ok=True)
+        return None

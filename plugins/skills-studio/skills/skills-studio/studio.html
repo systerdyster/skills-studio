@@ -140,7 +140,7 @@ const TOKEN = new URLSearchParams(location.search).get("token") || "";
 const SOURCES = ["project", "user", "synced", "plugin"];
 const POLL_MS = 4000;
 
-const state = { graph: null, signature: "", positions: {}, tab: "project", selected: null, loading: false };
+const state = { graph: null, tasks: [], signature: "", positions: {}, tab: "project", selected: null, loading: false };
 const nodeOf = new Map();   // skill id -> drawflow node id
 const skillOf = new Map();  // drawflow node id -> skill id
 const $ = (id) => document.getElementById(id);
@@ -227,12 +227,15 @@ function autoPositions(ids) {
   const called = new Set(state.graph.wires.map((w) => w.to));
   for (const id of ids) if (!called.has(id)) visit(id, 0, new Set());
   for (const id of ids) if (depth[id] === undefined) depth[id] = 0;
-  const rows = {};
+  // Nodes with a saved place keep it; the rest take the next free row in their column.
+  const taken = ids.filter((id) => state.positions[id]).map((id) => state.positions[id]);
+  const clashes = ([x, y]) => taken.some(([tx, ty]) => Math.abs(tx - x) < 230 && Math.abs(ty - y) < 95);
   const result = {};
-  for (const id of ids) {
-    const column = depth[id];
-    rows[column] = (rows[column] ?? 0) + 1;
-    result[id] = [40 + column * 290, 30 + (rows[column] - 1) * 110];
+  for (const id of ids.filter((id) => !state.positions[id])) {
+    const spot = [40 + depth[id] * 290, 30];
+    while (clashes(spot)) spot[1] += 110;
+    taken.push(spot);
+    result[id] = spot;
   }
   return result;
 }
@@ -278,6 +281,13 @@ function drawCanvas() {
     if (!nodeOf.has(wire.from) || !nodeOf.has(to)) continue;
     editor.addConnection(nodeOf.get(wire.from), nodeOf.get(to), "output_1", "input_1");
     if (wire.broken) connectionPath(nodeOf.get(wire.from), nodeOf.get(to))?.classList.add("broken");
+  }
+  // Wires a task has asked for, or asked to remove, show as pending until the text says otherwise.
+  for (const task of state.tasks.filter((t) => t.kind === "link" || t.kind === "unlink")) {
+    if (!nodeOf.has(task.from) || !nodeOf.has(task.to)) continue;
+    const [out, into] = [nodeOf.get(task.from), nodeOf.get(task.to)];
+    if (task.kind === "link" && !hasWire(task.from, task.to)) editor.addConnection(out, into, "output_1", "input_1");
+    connectionPath(out, into)?.classList.add("pending");
   }
   $("empty").classList.toggle("shown", ids.length === 0);
   state.loading = false;
@@ -513,21 +523,26 @@ function drawHeader() {
   $("project").textContent = state.graph.project;
   $("project").title = state.graph.project;
   const count = (level) => state.graph.findings.filter((f) => f.level === level).length;
-  $("counts").replaceChildren(
+  const active = state.tasks.filter((t) => t.state === "active").length;
+  const waiting = state.tasks.length - active;
+  $("counts").replaceChildren(el("span", {},
     el("span", {}, `${state.graph.skills.filter((s) => s.source === "project").length} project skills`),
+    state.tasks.length ? el("span", { title: "Tasks for the Claude session" },
+      ` · ${[active && `${active} in progress`, waiting && `${waiting} waiting`].filter(Boolean).join(", ")}`) : null),
     ...["error", "warning", "info"].filter((level) => count(level)).map((level) => el("span", { class: `badge ${level}` }, `${count(level)} ${level}`)));
 }
 
 async function refresh(force = false) {
-  let graph;
+  let graph, inFlight;
   try {
-    graph = await api("/graph");
+    [graph, inFlight] = await Promise.all([api("/graph"), api("/tasks")]);
   } catch (error) {
     return toast(`Cannot reach the studio: ${error.message}`);
   }
-  const next = signature(graph);
+  const next = signature(graph) + JSON.stringify(inFlight.tasks.map((t) => [t.id, t.state]));
   if (!force && next === state.signature) return;
   state.graph = graph;
+  state.tasks = inFlight.tasks;
   state.signature = next;
   drawHeader();
   drawPalette();
