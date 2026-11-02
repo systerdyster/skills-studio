@@ -59,6 +59,20 @@ class CommandTest(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertEqual([t["id"] for t in listed["tasks"]], [made["id"]])
 
+    def test_progress_on_an_active_task_shows_in_flight(self):
+        made = self.submit({"kind": "analyse"})
+        self.run_cli("task", "start", made["id"])
+        code, _ = self.run_cli("task", "progress", made["id"], "--note", "judging wires 4/13")
+        self.assertEqual(code, 0)
+        [listed] = self.run_cli("tasks")[1]["tasks"]
+        self.assertEqual((listed["state"], listed["progress"]), ("active", "judging wires 4/13"))
+
+    def test_progress_on_a_task_not_started_is_an_error(self):
+        made = self.submit({"kind": "analyse"})
+        code, out = self.run_cli("task", "progress", made["id"], "--note", "x")
+        self.assertEqual(code, 1)
+        self.assertIn("active", out["error"])
+
     def test_start_names_the_file_to_change_and_done_files_it(self):
         made = self.submit({"kind": "link", "from": "close-feature", "to": "git-finish"})
         code, started = self.run_cli("task", "start", made["id"])

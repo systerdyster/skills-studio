@@ -125,6 +125,19 @@ def start(paths, task_id, skills):
     return task
 
 
+def progress(paths, task_id, note):
+    """The session says where it is in an active task, for the page to show while it waits."""
+    if not (paths.active / f"{_checked(task_id)}.json").exists():
+        raise TaskError(f"task {task_id} is not active; start it first")
+    target = paths.active / f"{task_id}.json"
+    task = _read(target)
+    task.update(progress=note[:200], progress_at=_stamp())
+    partial = target.with_suffix(".partial")
+    partial.write_text(json.dumps(task, ensure_ascii=False, indent=2))
+    os.replace(partial, target)
+    return task
+
+
 def done(paths, task_id, outcome, note):
     if outcome not in OUTCOMES:
         raise TaskError(f"outcome must be one of {', '.join(OUTCOMES)}")

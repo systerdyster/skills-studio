@@ -41,7 +41,10 @@ refuses such tasks; refuse one that reaches you anyway, and file it `declined`.
 
 1. `S task start <id>` moves it to active and prints its fields and `target_file`, the SKILL.md it
    changes (none for `new`, `copy` and `analyse`). Read that file before changing it.
-2. Do the kind's work below, showing the developer what you are doing.
+2. Do the kind's work below, showing the developer what you are doing. The page shows the task as
+   running; for anything that takes more than a moment — `analyse` above all — say where you are with
+   `S task progress <id> --note "<a few words>"` at each step ("judging wires 4/13", "reading skills
+   for findings", "saving"), so the developer sees it moving.
 3. `S task done <id> --outcome done|declined|failed --note "<one line>"`. The note says what changed,
    or why not. The studio keeps the text before and after for the developer to compare.
 

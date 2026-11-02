@@ -54,10 +54,10 @@ def build_parser():
 
     commands.add_parser("tasks", parents=[common], help="tasks waiting and active")
     task = commands.add_parser("task", parents=[common], help="one task: submit, show, start or file it")
-    task.add_argument("action", choices=["submit", "show", "start", "done"])
+    task.add_argument("action", choices=["submit", "show", "start", "progress", "done"])
     task.add_argument("ref", help="the task as JSON (submit) or its id")
     task.add_argument("--outcome", choices=tasks.OUTCOMES, help="done: how it ended")
-    task.add_argument("--note", default="", help="done: one line on what was done, or why not")
+    task.add_argument("--note", default="", help="done: one line on what was done, or why not; progress: where it is now")
 
     copy = commands.add_parser("copy", parents=[common], help="copy a skill into the project under a new name")
     copy.add_argument("source", help="the skill's id")
@@ -220,6 +220,11 @@ def _task(args, project, home, paths):
     if args.action == "start":
         skills = scan(project, home)
         return _print(_brief(tasks.start(paths, args.ref, skills), skills))
+    if args.action == "progress":
+        if not args.note:
+            return _fail("progress needs --note")
+        updated = tasks.progress(paths, args.ref, args.note)
+        return _print({"id": updated["id"], "progress": updated["progress"]})
     if not args.outcome:
         return _fail("done needs --outcome")
     finished = tasks.done(paths, args.ref, args.outcome, args.note)

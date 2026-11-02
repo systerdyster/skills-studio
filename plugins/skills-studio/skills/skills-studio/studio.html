@@ -129,6 +129,17 @@ aside { background: var(--surface); overflow: auto; min-height: 0; }
 #board { display: grid; grid-template-rows: minmax(0, 1fr) auto; min-height: 0; min-width: 0; }
 #cards { overflow: auto; min-height: 0; padding: 16px; columns: 300px; column-gap: 14px; }
 #dock:empty { display: none; }
+.analysing { display: flex; gap: 10px; align-items: center; padding: 9px 16px; font-size: 13px;
+             background: var(--listing-bg); border-top: 1px solid var(--listing-edge); border-left: 4px solid var(--accent); }
+.analysing .sub { margin-left: auto; color: var(--muted); font-size: 12px; }
+.spinner { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--listing-edge); border-top-color: var(--accent);
+           animation: spin .8s linear infinite; flex: none; }
+button.busy { opacity: .85; cursor: progress; }
+button.busy::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 7px; vertical-align: -1px;
+                      border-radius: 50%; border: 2px solid rgb(255 255 255 / .45); border-top-color: var(--accent-text);
+                      animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner, button.busy::before { animation-duration: 2.4s; } }
 .insights { background: var(--surface); border-top: 1px solid var(--line); box-shadow: 0 -6px 18px rgb(0 0 0 / .08);
             max-height: 38vh; display: grid; grid-template-rows: auto minmax(0, 1fr); }
 .insights-head { display: flex; gap: 10px; align-items: center; padding: 8px 16px; border-left: 4px solid var(--warning);
@@ -399,7 +410,12 @@ function drawCards() {
     el("p", {}, el("strong", {}, "This project has no skills of its own yet.")),
     el("p", {}, "Create one with ", el("em", {}, "New skill"), ", or open a skill in the palette and copy it into the project."))]));
   const strip = insightStrip();
-  $("dock").replaceChildren(...(strip ? [strip] : []));
+  const running = analyseTask();
+  const bar = running ? el("div", { class: "analysing", role: "status" },
+    el("span", { class: "spinner", "aria-hidden": "true" }), el("strong", {}, "Analysing"),
+    el("span", {}, analyseStatus(running)),
+    el("span", { class: "sub" }, running.started_at ? `started ${new Date(running.started_at).toLocaleTimeString()}` : "")) : null;
+  $("dock").replaceChildren(...[bar, strip].filter(Boolean));
 }
 
 // ---- palette -------------------------------------------------------------------------------
@@ -818,6 +834,15 @@ $("close-studio").addEventListener("click", async () => {
 
 // ---- load and keep current -----------------------------------------------------------------
 
+// An Analyse in flight, and what to say about it: waiting for the session to pick it up, or the
+// session's own last word on where it is.
+const analyseTask = () => state.tasks.find((t) => t.kind === "analyse");
+
+function analyseStatus(task) {
+  if (task.state !== "active") return "Waiting for Claude to pick it up…";
+  return task.progress ? `Claude: ${task.progress}` : "Claude is reading the skills…";
+}
+
 function drawHeader() {
   $("project").textContent = state.graph.project;
   $("project").title = state.graph.project;
@@ -825,7 +850,12 @@ function drawHeader() {
   const active = state.tasks.filter((t) => t.state === "active").length;
   const waiting = state.tasks.length - active;
   const open = unjudged();
-  $("analyse").title = open ? `${open} wires not yet judged call or mention; Analyse has Claude judge them`
+  const running = analyseTask();
+  $("analyse").disabled = Boolean(running);
+  $("analyse").classList.toggle("busy", Boolean(running));
+  $("analyse").textContent = running ? "Analysing…" : "Analyse";
+  $("analyse").title = running ? analyseStatus(running)
+    : open ? `${open} wires not yet judged call or mention; Analyse has Claude judge them`
     : "Every wire is judged call or mention";
   $("counts").replaceChildren(el("span", {},
     el("span", {}, `${state.graph.skills.filter((s) => s.source === "project").length} project skills`),
@@ -861,7 +891,7 @@ async function refresh(force = false) {
   }
   state.usage = usage;
   drawUsageButton();
-  const next = signature(graph) + JSON.stringify(inFlight.tasks.map((t) => [t.id, t.state])) + usage.fetched_at;
+  const next = signature(graph) + JSON.stringify(inFlight.tasks.map((t) => [t.id, t.state, t.progress])) + usage.fetched_at;
   if (!force && next === state.signature) return;
   state.graph = graph;
   state.tasks = inFlight.tasks;
