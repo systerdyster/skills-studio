@@ -1,5 +1,547 @@
 <!doctype html>
+<html lang="en">
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Skills Studio</title>
-<p>Skills Studio: the canvas is not built yet. The API answers at <code>/graph</code>.</p>
+<link rel="stylesheet" href="/vendor/drawflow.min.css">
+<script src="/vendor/drawflow.min.js"></script>
+<style>
+:root {
+  --bg: #f6f6f4; --surface: #ffffff; --surface-2: #efefec; --line: #d9d9d4; --text: #1d1d1b;
+  --muted: #6b6b66; --accent: #3b5bdb; --accent-text: #ffffff; --wire: #8a8a84;
+  --error: #c92a2a; --warning: #b7791f; --info: #3b5bdb; --readonly: #f0efea;
+  --project: #2b8a3e; --user: #6741d9; --synced: #0c8599; --plugin: #a61e4d;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #161615; --surface: #20201e; --surface-2: #2a2a27; --line: #3a3a36; --text: #ecece8;
+    --muted: #9b9b94; --accent: #748ffc; --accent-text: #10111a; --wire: #77776f;
+    --error: #ff6b6b; --warning: #f0b44c; --info: #748ffc; --readonly: #262624;
+    --project: #69db7c; --user: #b197fc; --synced: #66d9e8; --plugin: #f783ac;
+  }
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+       display: grid; grid-template-rows: auto minmax(0, 1fr); grid-template-columns: minmax(0, 1fr); overflow: hidden; }
+button, input, textarea { font: inherit; color: inherit; }
+button { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 11px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+input, textarea { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; width: 100%; }
+textarea { resize: vertical; min-height: 70px; }
+code, pre { font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+header { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--surface); }
+header h1 { font-size: 15px; margin: 0; }
+header .project { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1 1 120px; direction: rtl; text-align: left; }
+header .counts { display: flex; gap: 8px; color: var(--muted); white-space: nowrap; align-items: center; }
+
+main { display: grid; grid-template-columns: 250px minmax(0, 1fr) 380px; min-height: 0; }
+main.no-panel { grid-template-columns: 250px minmax(0, 1fr) 0; }
+aside { background: var(--surface); overflow: auto; min-height: 0; }
+#palette { border-right: 1px solid var(--line); padding: 12px; }
+#panel { border-left: 1px solid var(--line); padding: 16px; }
+main.no-panel #panel { display: none; }
+
+.tabs { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0; }
+.tabs button { padding: 2px 8px; font-size: 12px; }
+.tabs button[aria-pressed="true"] { background: var(--surface-2); border-color: var(--text); }
+#palette ul { list-style: none; margin: 0; padding: 0; }
+#palette li { padding: 6px 8px; border-radius: 6px; cursor: grab; display: flex; gap: 6px; align-items: center; }
+#palette li:hover { background: var(--surface-2); }
+#palette li .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+#palette .hint { color: var(--muted); font-size: 12px; margin: 10px 0 0; }
+
+.dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.dot.project { background: var(--project); } .dot.user { background: var(--user); }
+.dot.synced { background: var(--synced); } .dot.plugin { background: var(--plugin); }
+.badge { font-size: 11px; border-radius: 9px; padding: 0 6px; border: 1px solid currentColor; white-space: nowrap; }
+.badge.error { color: var(--error); } .badge.warning { color: var(--warning); } .badge.info { color: var(--info); }
+
+#canvas-wrap { position: relative; min-width: 0; min-height: 0; }
+#drawflow { position: absolute; inset: 0; background: var(--bg);
+  background-image: radial-gradient(var(--line) 1px, transparent 1px); background-size: 22px 22px; }
+#empty { position: absolute; inset: 0; display: none; place-items: center; text-align: center; color: var(--muted); padding: 24px; pointer-events: none; }
+#empty.shown { display: grid; }
+
+.drawflow .drawflow-node { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; color: var(--text);
+  width: 220px; min-height: 0; padding: 8px 10px; box-shadow: 0 1px 2px rgb(0 0 0 / .06); }
+.drawflow .drawflow-node.selected { background: var(--surface); border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.drawflow .drawflow-node.readonly { background: var(--readonly); }
+.drawflow .drawflow-node.missing { background: transparent; border: 1px dashed var(--error); color: var(--error); }
+.drawflow .drawflow-node .input, .drawflow .drawflow-node .output { width: 12px; height: 12px; background: var(--surface); border: 2px solid var(--wire); }
+.drawflow .drawflow-node .output:hover { background: var(--accent); }
+.drawflow .drawflow-node .inputs { left: -7px; } .drawflow .drawflow-node .outputs { right: -7px; }
+.drawflow .drawflow-node .drawflow-delete { display: none; }
+.drawflow .connection .main-path { stroke: var(--wire); stroke-width: 2px; }
+.drawflow .connection .main-path:hover, .drawflow .connection .main-path.selected { stroke: var(--accent); }
+.drawflow .connection.broken .main-path { stroke: var(--error); stroke-dasharray: 6 4; }
+.drawflow .connection.pending .main-path { stroke: var(--accent); stroke-dasharray: 2 4; }
+.drawflow-delete { background: var(--error); border: none; color: #fff; }
+.node-title { display: flex; gap: 6px; align-items: center; font-weight: 600; overflow: hidden; }
+.node-title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.node-meta { display: flex; gap: 6px; align-items: center; color: var(--muted); font-size: 12px; margin-top: 3px; flex-wrap: wrap; }
+
+#panel h2 { font-size: 16px; margin: 0 0 2px; word-break: break-word; }
+#panel h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 18px 0 6px; }
+#panel .sub { color: var(--muted); font-size: 12px; word-break: break-all; }
+#panel dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 8px 0 0; font-size: 13px; }
+#panel dt { color: var(--muted); }
+#panel dd { margin: 0; }
+#panel ol, #panel ul.findings { margin: 0; padding-left: 20px; }
+#panel ul.findings li { margin-bottom: 4px; }
+#panel pre { background: var(--surface-2); padding: 10px; border-radius: 6px; overflow: auto; max-height: 360px; white-space: pre-wrap; word-break: break-word; }
+#panel label { display: block; font-size: 12px; color: var(--muted); margin: 8px 0 3px; }
+#panel .row { display: flex; gap: 8px; margin-top: 8px; justify-content: flex-end; }
+#panel .close { float: right; }
+#panel a.wire { color: var(--accent); cursor: pointer; text-decoration: none; }
+#panel a.wire.broken { color: var(--error); }
+
+#toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg);
+  padding: 8px 14px; border-radius: 8px; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: 90vw; }
+#toast.shown { opacity: 1; }
+
+@media (max-width: 900px) {
+  main, main.no-panel { grid-template-columns: 1fr; grid-template-rows: 180px 1fr auto; }
+  #palette { border-right: none; border-bottom: 1px solid var(--line); }
+  #panel { border-left: none; border-top: 1px solid var(--line); max-height: 50vh; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Skills Studio</h1>
+  <span class="project" id="project"></span>
+  <span class="counts" id="counts"></span>
+  <button id="reset-layout" title="Forget where nodes were placed and lay them out again">Reset layout</button>
+  <button id="new-skill">New skill</button>
+  <button id="analyse" class="primary">Analyse</button>
+</header>
+<main class="no-panel" id="main">
+  <aside id="palette">
+    <input id="search" type="search" placeholder="Find a skill" aria-label="Find a skill">
+    <div class="tabs" id="tabs"></div>
+    <ul id="palette-list"></ul>
+    <p class="hint">Drag a skill onto the canvas; double-click a node to open it. Draw a wire from a project skill's right edge to let it call another skill.</p>
+  </aside>
+  <section id="canvas-wrap">
+    <div id="drawflow"></div>
+    <div id="empty"><div><p><strong>This project has no skills of its own yet.</strong></p>
+      <p>Create one with <em>New skill</em>, or drag a skill from the palette and copy it into the project.</p></div></div>
+  </section>
+  <aside id="panel"></aside>
+</main>
+<div id="toast" role="status"></div>
+<script>
+"use strict";
+const TOKEN = new URLSearchParams(location.search).get("token") || "";
+const SOURCES = ["project", "user", "synced", "plugin"];
+const POLL_MS = 4000;
+
+const state = { graph: null, signature: "", positions: {}, tab: "project", selected: null, loading: false };
+const nodeOf = new Map();   // skill id -> drawflow node id
+const skillOf = new Map();  // drawflow node id -> skill id
+const $ = (id) => document.getElementById(id);
+
+async function api(path, body) {
+  const options = { headers: { "X-Studio-Token": TOKEN } };
+  if (body !== undefined) {
+    options.method = "POST";
+    options.headers["Content-Type"] = "application/json";
+    options.body = JSON.stringify(body);
+  }
+  const response = await fetch(path, options);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+  return data;
+}
+
+function el(tag, attrs = {}, ...children) {
+  const node = document.createElement(tag);
+  for (const [key, value] of Object.entries(attrs)) {
+    if (key === "class") node.className = value;
+    else if (key.startsWith("on")) node.addEventListener(key.slice(2), value);
+    else if (value !== null && value !== undefined) node.setAttribute(key, value);
+  }
+  for (const child of children.flat()) if (child !== null && child !== undefined && child !== false)
+    node.append(child instanceof Node ? child : String(child));
+  return node;
+}
+
+function escapeHtml(text) {
+  return String(text).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+let toastTimer;
+function toast(text) {
+  const box = $("toast");
+  box.textContent = text;
+  box.classList.add("shown");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => box.classList.remove("shown"), 3200);
+}
+
+async function sendTask(task, said) {
+  try {
+    await api("/task", task);
+    toast(`Sent to Claude: ${said}`);
+    return true;
+  } catch (error) {
+    toast(`Not sent: ${error.message}`);
+    return false;
+  }
+}
+
+// ---- graph helpers -------------------------------------------------------------------------
+
+const skillById = (id) => state.graph.skills.find((s) => s.id === id);
+const findingsFor = (id) => state.graph.findings.filter((f) => f.skill === id);
+const wiresFrom = (id) => state.graph.wires.filter((w) => w.from === id).sort((a, b) => a.order - b.order);
+const wiresTo = (id) => state.graph.wires.filter((w) => w.to === id);
+
+function signature(graph) {
+  return JSON.stringify([graph.skills.map((s) => [s.id, s.modified]), graph.wires.map((w) => [w.from, w.to, w.broken])]);
+}
+
+// What the canvas shows: the project's skills, what they call, and anything dragged onto it.
+function canvasIds() {
+  const ids = new Set(state.graph.skills.filter((s) => s.source === "project").map((s) => s.id));
+  for (const id of [...ids]) for (const wire of wiresFrom(id)) ids.add(wire.broken ? `missing:${wire.to}` : wire.to);
+  for (const id of Object.keys(state.positions)) if (skillById(id)) ids.add(id);
+  for (const id of Object.keys(state.positions)) if (skillById(id))
+    for (const wire of wiresFrom(id)) if (ids.has(wire.to)) ids.add(wire.to);
+  return [...ids];
+}
+
+// A first position for nodes the layout does not know: columns by how deep the calls go.
+function autoPositions(ids) {
+  const depth = {};
+  const visit = (id, d, seen) => {
+    if (seen.has(id)) return;
+    seen.add(id);
+    depth[id] = Math.max(depth[id] ?? 0, d);
+    for (const wire of wiresFrom(id)) visit(wire.broken ? `missing:${wire.to}` : wire.to, d + 1, seen);
+  };
+  const called = new Set(state.graph.wires.map((w) => w.to));
+  for (const id of ids) if (!called.has(id)) visit(id, 0, new Set());
+  for (const id of ids) if (depth[id] === undefined) depth[id] = 0;
+  const rows = {};
+  const result = {};
+  for (const id of ids) {
+    const column = depth[id];
+    rows[column] = (rows[column] ?? 0) + 1;
+    result[id] = [40 + column * 290, 30 + (rows[column] - 1) * 110];
+  }
+  return result;
+}
+
+function nodeHtml(id) {
+  if (id.startsWith("missing:")) {
+    return `<div class="node-title"><span>${escapeHtml(id.slice(8))}</span></div><div class="node-meta">not in scope</div>`;
+  }
+  const skill = skillById(id);
+  const levels = { error: 0, warning: 0, info: 0 };
+  for (const f of findingsFor(id)) levels[f.level] += 1;
+  const badges = Object.entries(levels).filter(([, n]) => n).map(([level, n]) => `<span class="badge ${level}">${n} ${level}</span>`).join("");
+  const where = skill.plugin ? `${skill.source} · ${skill.plugin}` : skill.source;
+  return `<div class="node-title"><span class="dot ${skill.source}"></span><span title="${escapeHtml(id)}">${escapeHtml(skill.name)}</span></div>
+    <div class="node-meta"><span>${escapeHtml(where)}</span><span>≈${skill.tokens.body} tok</span>${badges}</div>`;
+}
+
+// ---- canvas --------------------------------------------------------------------------------
+
+const editor = new Drawflow($("drawflow"));
+editor.reroute = false;
+editor.zoom_min = 0.3;
+editor.start();
+
+function drawCanvas() {
+  state.loading = true;
+  editor.clear();
+  nodeOf.clear();
+  skillOf.clear();
+  const ids = canvasIds();
+  const fallback = autoPositions(ids);
+  for (const id of ids) {
+    const [x, y] = state.positions[id] || fallback[id];
+    const skill = skillById(id);
+    const missing = id.startsWith("missing:");
+    const classes = missing ? "missing" : skill.writable ? "writable" : "readonly";
+    const node = editor.addNode(id, 1, missing ? 0 : 1, x, y, classes, { id }, nodeHtml(id));
+    nodeOf.set(id, node);
+    skillOf.set(String(node), id);
+  }
+  for (const wire of state.graph.wires) {
+    const to = wire.broken ? `missing:${wire.to}` : wire.to;
+    if (!nodeOf.has(wire.from) || !nodeOf.has(to)) continue;
+    editor.addConnection(nodeOf.get(wire.from), nodeOf.get(to), "output_1", "input_1");
+    if (wire.broken) connectionPath(nodeOf.get(wire.from), nodeOf.get(to))?.classList.add("broken");
+  }
+  $("empty").classList.toggle("shown", ids.length === 0);
+  state.loading = false;
+}
+
+function connectionPath(out, into) {
+  return document.querySelector(`.connection.node_out_node-${out}.node_in_node-${into}`);
+}
+
+function hasWire(from, to) {
+  return state.graph.wires.some((w) => w.from === from && (w.to === to || `missing:${w.to}` === to));
+}
+
+editor.on("connectionCreated", async ({ output_id, input_id }) => {
+  if (state.loading) return;
+  const from = skillOf.get(String(output_id));
+  const to = skillOf.get(String(input_id));
+  const drop = () => { state.loading = true; editor.removeSingleConnection(output_id, input_id, "output_1", "input_1"); state.loading = false; };
+  if (hasWire(from, to)) return;
+  if (!skillById(from)?.writable) {
+    drop();
+    return toast(`${from} is read-only: only the project's own skills can call new skills.`);
+  }
+  if (to.startsWith("missing:") || from === to) return drop();
+  connectionPath(output_id, input_id)?.classList.add("pending");
+  if (!(await sendTask({ kind: "link", from, to }, `let ${from} call ${to}`))) drop();
+});
+
+editor.on("connectionRemoved", async ({ output_id, input_id }) => {
+  if (state.loading) return;
+  const from = skillOf.get(String(output_id));
+  const to = skillOf.get(String(input_id));
+  if (!from || !to || !hasWire(from, to)) return;
+  if (!skillById(from)?.writable) {
+    toast(`${from} is read-only; the wire stays until its text changes.`);
+    return drawCanvas();
+  }
+  const target = to.startsWith("missing:") ? to.slice(8) : to;
+  await sendTask({ kind: "unlink", from, to: target }, `stop ${from} calling ${target}`);
+});
+
+let saveTimer;
+editor.on("nodeMoved", () => {
+  if (state.loading) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveLayout, 400);
+});
+
+function saveLayout(added = {}) {
+  const positions = {};
+  for (const [id, node] of nodeOf) {
+    if (id.startsWith("missing:")) continue;
+    const data = editor.getNodeFromId(node);
+    positions[id] = [Math.round(data.pos_x), Math.round(data.pos_y)];
+  }
+  Object.assign(positions, added);
+  state.positions = positions;
+  api("/layout", { positions }).catch((error) => toast(`Layout not saved: ${error.message}`));
+}
+
+// Double-click, not select: a select starts every drag, and opening the panel mid-drag moves the canvas.
+$("drawflow").addEventListener("dblclick", (event) => {
+  const node = event.target.closest(".drawflow-node");
+  const id = node && skillOf.get(node.id.replace("node-", ""));
+  if (id && !id.startsWith("missing:")) openSkill(id);
+});
+
+// Deleting a node would only hide it, and its wires would read as unlinking: keep nodes.
+document.addEventListener("keydown", (event) => {
+  if ((event.key === "Delete" || event.key === "Backspace") && editor.node_selected &&
+      !["INPUT", "TEXTAREA"].includes(document.activeElement?.tagName)) {
+    event.stopPropagation();
+    event.preventDefault();
+  }
+}, true);
+
+// ---- palette -------------------------------------------------------------------------------
+
+function drawTabs() {
+  const tabs = $("tabs");
+  tabs.replaceChildren(...SOURCES.map((source) => {
+    const count = state.graph.skills.filter((s) => s.source === source).length;
+    return el("button", { "aria-pressed": String(state.tab === source), onclick: () => { state.tab = source; drawPalette(); } },
+      `${source} ${count}`);
+  }));
+}
+
+function drawPalette() {
+  drawTabs();
+  const query = $("search").value.trim().toLowerCase();
+  const list = state.graph.skills
+    .filter((s) => s.source === state.tab)
+    .filter((s) => !query || s.id.toLowerCase().includes(query) || (s.frontmatter?.description || "").toLowerCase().includes(query))
+    .sort((a, b) => a.id.localeCompare(b.id));
+  $("palette-list").replaceChildren(...list.map((skill) => {
+    const worst = ["error", "warning", "info"].find((level) => findingsFor(skill.id).some((f) => f.level === level));
+    return el("li", {
+      draggable: "true", title: skill.frontmatter?.description || "",
+      ondragstart: (event) => event.dataTransfer.setData("text/plain", skill.id),
+      onclick: () => openSkill(skill.id),
+    }, el("span", { class: `dot ${skill.source}` }), el("span", { class: "name" }, skill.id),
+       worst ? el("span", { class: `badge ${worst}` }, worst) : null);
+  }));
+}
+
+$("search").addEventListener("input", drawPalette);
+
+$("drawflow").addEventListener("dragover", (event) => event.preventDefault());
+$("drawflow").addEventListener("drop", (event) => {
+  event.preventDefault();
+  const id = event.dataTransfer.getData("text/plain");
+  if (!skillById(id)) return;
+  const scale = editor.precanvas.clientWidth / (editor.precanvas.clientWidth * editor.zoom);
+  const box = editor.precanvas.getBoundingClientRect();
+  const x = event.clientX * scale - box.x * scale;
+  const y = event.clientY * scale - box.y * scale;
+  saveLayout({ [id]: [Math.round(x), Math.round(y)] });
+  drawCanvas();
+});
+
+// ---- the skill panel -----------------------------------------------------------------------
+
+function showPanel(...children) {
+  $("main").classList.remove("no-panel");
+  $("panel").replaceChildren(el("button", { class: "close", onclick: closePanel, "aria-label": "Close" }, "×"), ...children);
+}
+
+function closePanel() {
+  state.selected = null;
+  $("main").classList.add("no-panel");
+}
+
+function wireList(wires, pick) {
+  if (!wires.length) return el("p", { class: "sub" }, "None.");
+  return el("ol", {}, wires.map((wire) => {
+    const id = pick(wire);
+    return el("li", {}, el("a", { class: `wire${wire.broken ? " broken" : ""}`, onclick: () => !wire.broken && openSkill(id) },
+      id, wire.broken ? " (not in scope)" : ""), el("span", { class: "sub" }, ` line ${wire.line}`));
+  }));
+}
+
+async function openSkill(id) {
+  state.selected = id;
+  let skill;
+  try {
+    skill = await api(`/skill?id=${encodeURIComponent(id)}`);
+  } catch (error) {
+    return toast(error.message);
+  }
+  if (state.selected !== id) return;
+  const description = skill.frontmatter?.description || "";
+  const findings = findingsFor(id);
+  const parts = [
+    el("h2", {}, skill.name),
+    el("div", { class: "sub" }, `${skill.id} · ${skill.writable ? "project, editable" : `${skill.source}, read-only`}`),
+    el("dl", {},
+      el("dt", {}, "Path"), el("dd", { class: "sub" }, skill.real_path),
+      el("dt", {}, "Tokens"), el("dd", {}, `≈${skill.tokens.listing} listing · ≈${skill.tokens.body} body`),
+      el("dt", {}, "Size"), el("dd", {}, `${skill.size} bytes`),
+      el("dt", {}, "Modified"), el("dd", {}, new Date(skill.modified).toLocaleString())),
+    el("h3", {}, `Findings (${findings.length})`),
+    findings.length
+      ? el("ul", { class: "findings" }, findings.map((f) => el("li", {}, el("span", { class: `badge ${f.level}` }, f.level), " ",
+          f.message, f.line ? el("span", { class: "sub" }, ` line ${f.line}`) : null)))
+      : el("p", { class: "sub" }, "None."),
+    el("h3", {}, "Calls, in order"), wireList(wiresFrom(id), (w) => w.to),
+    el("h3", {}, "Called by"), wireList(wiresTo(id), (w) => w.from),
+  ];
+  if (skill.writable) parts.push(...editForm(skill, description));
+  else parts.push(...copyForm(skill));
+  parts.push(el("h3", {}, "Text"), el("pre", {}, skill.body));
+  showPanel(...parts);
+}
+
+function editForm(skill, description) {
+  const name = el("input", { value: skill.name });
+  const desc = el("textarea", { rows: "5" }, description);
+  const change = el("textarea", { rows: "3", placeholder: "e.g. Extract the git handling into its own skill and call it from here." });
+  return [
+    el("h3", {}, "Edit"),
+    el("label", {}, "Name"), name,
+    el("label", {}, `Description (${description.length} characters)`), desc,
+    el("div", { class: "row" }, el("button", { onclick: async () => {
+      if (name.value.trim() !== skill.name)
+        await sendTask({ kind: "edit", skill: skill.id, field: "name", value: name.value }, `rename ${skill.id}`);
+      if (desc.value !== description)
+        await sendTask({ kind: "edit", skill: skill.id, field: "description", value: desc.value }, `new description for ${skill.id}`);
+    } }, "Send edits")),
+    el("h3", {}, "Change with Claude"), change,
+    el("div", { class: "row" }, el("button", { class: "primary", onclick: () => change.value.trim() &&
+      sendTask({ kind: "change", skill: skill.id, text: change.value }, `change ${skill.id}`) }, "Send to Claude")),
+  ];
+}
+
+function copyForm(skill) {
+  const name = el("input", { value: `${skill.name}-copy` });
+  return [
+    el("h3", {}, "Copy into the project"),
+    el("p", { class: "sub" }, "Read-only here. A copy becomes the project's own skill, under a new name."),
+    el("label", {}, "New name"), name,
+    el("div", { class: "row" }, el("button", { onclick: () =>
+      sendTask({ kind: "copy", source: skill.id, name: name.value.trim() }, `copy ${skill.id} as ${name.value.trim()}`) }, "Copy as template")),
+  ];
+}
+
+$("new-skill").addEventListener("click", () => {
+  state.selected = null;
+  const name = el("input", { placeholder: "git-finish" });
+  const description = el("textarea", { rows: "4", placeholder: "What it does, and when to use it." });
+  const intent = el("textarea", { rows: "4", placeholder: "Anything Claude should know when writing it." });
+  showPanel(el("h2", {}, "New skill"),
+    el("label", {}, "Name"), name, el("label", {}, "Description"), description, el("label", {}, "Intent"), intent,
+    el("div", { class: "row" }, el("button", { class: "primary", onclick: () => sendTask(
+      { kind: "new", name: name.value.trim(), description: description.value, intent: intent.value }, `write ${name.value.trim()}`) },
+      "Send to Claude")));
+});
+
+$("reset-layout").addEventListener("click", async () => {
+  state.positions = {};
+  editor.zoom_reset();
+  editor.canvas_x = 0;
+  editor.canvas_y = 0;
+  editor.precanvas.style.transform = "translate(0px, 0px) scale(1)";
+  await api("/layout", { positions: {} }).catch((error) => toast(`Layout not saved: ${error.message}`));
+  drawCanvas();
+});
+
+$("analyse").addEventListener("click",() => sendTask({ kind: "analyse" }, "analyse this project's skills"));
+
+// ---- load and keep current -----------------------------------------------------------------
+
+function drawHeader() {
+  $("project").textContent = state.graph.project;
+  $("project").title = state.graph.project;
+  const count = (level) => state.graph.findings.filter((f) => f.level === level).length;
+  $("counts").replaceChildren(
+    el("span", {}, `${state.graph.skills.filter((s) => s.source === "project").length} project skills`),
+    ...["error", "warning", "info"].filter((level) => count(level)).map((level) => el("span", { class: `badge ${level}` }, `${count(level)} ${level}`)));
+}
+
+async function refresh(force = false) {
+  let graph;
+  try {
+    graph = await api("/graph");
+  } catch (error) {
+    return toast(`Cannot reach the studio: ${error.message}`);
+  }
+  const next = signature(graph);
+  if (!force && next === state.signature) return;
+  state.graph = graph;
+  state.signature = next;
+  drawHeader();
+  drawPalette();
+  drawCanvas();
+  if (state.selected) openSkill(state.selected);
+}
+
+(async () => {
+  try {
+    state.positions = (await api("/layout")).positions || {};
+  } catch { state.positions = {}; }
+  await refresh(true);
+  setInterval(() => document.visibilityState === "visible" && refresh(), POLL_MS);
+})();
+</script>
+</body>
+</html>

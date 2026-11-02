@@ -26,12 +26,13 @@ from urllib.parse import parse_qs, urlparse
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "bin"))
 
-from sx import graph  # noqa: E402
+from sx import graph, layout  # noqa: E402
+from sx.layout import LayoutError  # noqa: E402
 from sx.state import StudioPaths  # noqa: E402
 from sx.tasks import TaskError, submit  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
-MAX_BODY = 16 * 1024
+MAX_BODY = 64 * 1024
 GRAPH_MAX_AGE = 2.0
 
 
@@ -84,14 +85,16 @@ def make_handler(project, home, token, port):
             return hmac.compare_digest(supplied, token)
 
         def do_GET(self):
+            url = urlparse(self.path)
+            # The vendored library is public code: the page loads it with plain tags, which carry no
+            # token header. It still needs a local Host.
+            if url.path.startswith("/vendor/") and self.headers.get("Host") in allowed_hosts:
+                return self._vendor(url.path[len("/vendor/"):])
             if not self._authorised():
                 return self._json(403, {"error": "missing or wrong token"})
-            url = urlparse(self.path)
             if url.path == "/":
                 page = HERE / "studio.html"
                 return self._send(200, page.read_bytes(), "text/html; charset=utf-8")
-            if url.path.startswith("/vendor/"):
-                return self._vendor(url.path[len("/vendor/"):])
             if url.path == "/graph":
                 data = current_graph()
                 return self._json(200, {**data, "skills": [_without_body(s) for s in data["skills"]]})
@@ -103,6 +106,8 @@ def make_handler(project, home, token, port):
                 return self._json(404, {"error": f"no skill {wanted!r}"})
             if url.path == "/analysis":
                 return self._json(200, _latest_analysis(paths))
+            if url.path == "/layout":
+                return self._json(200, layout.read(paths))
             return self._json(404, {"error": "not found"})
 
         def _vendor(self, name):
@@ -119,7 +124,8 @@ def make_handler(project, home, token, port):
             origin = self.headers.get("Origin")
             if origin and urlparse(origin).netloc not in allowed_hosts:
                 return self._json(403, {"error": "cross-origin request refused"})
-            if urlparse(self.path).path != "/task":
+            route = urlparse(self.path).path
+            if route not in ("/task", "/layout"):
                 return self._json(404, {"error": "not found"})
             if not (self.headers.get("Content-Type") or "").startswith("application/json"):
                 return self._json(415, {"error": "expected application/json"})
@@ -128,10 +134,12 @@ def make_handler(project, home, token, port):
                 return self._json(413, {"error": "body missing or too large"})
             try:
                 raw = json.loads(self.rfile.read(length))
+                if route == "/layout":
+                    return self._json(200, layout.write(paths, raw))
                 task = submit(paths, raw, current_graph(fresh=True)["skills"])
             except json.JSONDecodeError:
                 return self._json(400, {"error": "invalid JSON"})
-            except TaskError as e:
+            except (TaskError, LayoutError) as e:
                 return self._json(400, {"error": str(e)})
             return self._json(202, task)
 
