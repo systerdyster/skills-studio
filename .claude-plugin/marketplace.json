@@ -1,6 +1,6 @@
 {
   "name": "skills-studio",
-  "description": "Fredrik's local marketplace for the Skills Studio plugin.",
+  "description": "The Skills Studio plugin for Claude Code.",
   "owner": {
     "name": "Fredrik Gardin"
   },

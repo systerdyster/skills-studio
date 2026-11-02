@@ -1,11 +1,11 @@
 # Skills Studio — design
 
-A visual workspace for a project's Claude skills, in the style of Node-RED: skills are nodes, the
-calls between them are wires. Its purpose is to keep skills small and focused — to split large skills
-into building blocks, merge overlapping ones, and link small ones into workflows — without changing
-how a composed skill behaves.
+A visual workspace for a project's Claude skills: each skill a card, holding the skills it calls. Its
+purpose is to keep skills small and focused — to split large skills into building blocks, merge
+overlapping ones, and link small ones into workflows — without changing how a composed skill behaves.
 
-Status: design, hardened by a grilling session on 2026-11-02. Nothing is built.
+Status: built (v0.2). Designed and grilled on 2026-11-02; first drawn as Node-RED-style nodes and
+wires, then rebuilt as nested cards the same day — see *Views*.
 
 ## Goals
 
