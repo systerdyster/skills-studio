@@ -96,18 +96,28 @@ studio state: what a parent runs is what its body says, so a second record would
     each other by their bare name;
   - a project or user skill: its name as a whole word (`brain-grill-me`); a one-word name
     (`commit`, `tdd`) only in backticks or as `/commit`, since as a plain word it is just a word.
-- A wire to a name that is not in scope is drawn **broken** (red).
-- **Order and conditions** live in the parent's text. The studio does not model them; it may number
+- A wire to a name that is not in scope is **broken** (red).
+- A wire is a **call** or a **mention**. A call: following A makes Claude run B, as a step, a
+  preflight or a handoff. A mention: anything else — a *Related* link, a "don't run it here", a
+  pointer for the developer. That is a judgement, so Claude makes it in Analyse; the studio keeps it
+  per skill with a fingerprint of the text (`.skills-studio/wire-kinds.json`), and a skill whose text
+  changed is judged again. A wire not judged yet counts as a call.
+- **Order and conditions** live in the parent's text. The studio does not model them; it orders
   wires by the position of the first mention.
-- **Drawing a wire** on the canvas creates a Deploy task ("let `close-feature` call `git-finish`");
-  Claude decides where in the parent's text it belongs.
+- **Adding a call** from the skill dialog creates a link task ("let `close-feature` call
+  `git-finish`"); Claude decides where in the parent's text it belongs.
 
 ## Views
 
-- **Canvas** — the project's skills as nodes, wires from text references, broken wires in red, a
-  warning badge on each node with lints. Palette on the side: project, user and plugin skills.
-- **Skill** (double-click a node) — frontmatter, body, path, ≈tokens, size, last modified, lints.
-  Small fields (name, description) are edited in place; body changes go to Claude as a task.
+- **Cards** — each project skill that nothing calls is a card; the skills it calls sit inside it as
+  cards of their own, in call order, and what it only mentions is listed at its foot. A skill called
+  from several places is shown in full once and collapsed elsewhere; a loop is marked, not followed.
+  Each card shows the description's first sentence, how often the skill is used (`/skill-doctor`) and
+  its worst finding; a never-used skill is faded. Palette on the side: project, user, synced and
+  plugin skills.
+- **Skill** (a dialog, opened from a card or the palette) — frontmatter, body, path, ≈tokens, size,
+  last modified, usage, findings, what it names and what names it. Small fields (name, description)
+  are edited in place; body changes, improving with skill-creator and deleting go to Claude as tasks.
 - **New skill** — a short form (name, description, intent), then handed to the session to write with
   skill-creator.
 - **Analysis** — the latest suggestions from Analyse, each one a Deploy task the developer can send.
@@ -155,4 +165,5 @@ developer runs it.
   `/skills-studio` must re-arm it and pick up tasks already waiting in `inbox/`. Poll with `ls`, not
   a bare glob: zsh aborts on a glob with no match. Still open: whether a mod (`$.prompt.submit` on a
   timer) is a quieter watcher than `Monitor`.
-- **Which canvas library**, vendored locally, no CDN. An implementation choice for the plan.
+- **No canvas library.** The first build drew nodes and wires with Drawflow; the wires turned out
+  harder to read than nesting, so the cards are plain HTML and the page loads nothing from outside.

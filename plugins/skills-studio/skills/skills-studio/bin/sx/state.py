@@ -16,7 +16,6 @@ class StudioPaths:
         self.analysis = self.root / "analysis"
         self.server = self.root / "server.json"
         self.lease = self.root / "lease.json"
-        self.layout = self.root / "layout.json"
         self.wire_kinds = self.root / "wire-kinds.json"
 
     def ensure(self):

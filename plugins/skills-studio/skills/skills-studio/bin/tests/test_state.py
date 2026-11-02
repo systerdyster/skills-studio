@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from sx import lease, layout
+from sx import lease, wirekinds
 from sx.state import StudioPaths
 from sx.tasks import submit
 
@@ -23,8 +23,8 @@ class SelfIgnoringTest(unittest.TestCase):
     def test_lease_folder_is_ignored(self):
         self.check_ignored(lambda paths: lease.take(paths, "a"))
 
-    def test_layout_folder_is_ignored(self):
-        self.check_ignored(lambda paths: layout.write(paths, {"positions": {}}))
+    def test_wire_kinds_file_is_ignored(self):
+        self.check_ignored(lambda paths: wirekinds.save(paths, {}, [], [], {}))
 
     def test_inbox_folder_is_ignored(self):
         self.check_ignored(lambda paths: submit(paths, {"kind": "analyse"}, []))

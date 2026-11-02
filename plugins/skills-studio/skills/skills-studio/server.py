@@ -25,9 +25,8 @@ from urllib.parse import parse_qs, urlparse
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "bin"))
 
-from sx import graph, layout  # noqa: E402
+from sx import graph  # noqa: E402
 from sx import usage as skill_usage  # noqa: E402
-from sx.layout import LayoutError  # noqa: E402
 from sx.state import StudioPaths, running  # noqa: E402
 from sx.tasks import TaskError, in_flight, submit  # noqa: E402
 
@@ -86,10 +85,6 @@ def make_handler(project, home, token, port, usage):
 
         def do_GET(self):
             url = urlparse(self.path)
-            # The vendored library is public code: the page loads it with plain tags, which carry no
-            # token header. It still needs a local Host.
-            if url.path.startswith("/vendor/") and self.headers.get("Host") in allowed_hosts:
-                return self._vendor(url.path[len("/vendor/"):])
             if not self._authorised():
                 return self._json(403, {"error": "missing or wrong token"})
             if url.path == "/":
@@ -106,22 +101,12 @@ def make_handler(project, home, token, port, usage):
                 return self._json(404, {"error": f"no skill {wanted!r}"})
             if url.path == "/analysis":
                 return self._json(200, _latest_analysis(paths))
-            if url.path == "/layout":
-                return self._json(200, layout.read(paths))
             if url.path == "/usage":
                 return self._json(200, _usage_view(usage, current_graph()["skills"]))
             if url.path == "/tasks":
                 return self._json(200, {"tasks": [{k: v for k, v in t.items() if k not in ("before", "after")}
                                                   for t in in_flight(paths)]})
             return self._json(404, {"error": "not found"})
-
-        def _vendor(self, name):
-            folder = (HERE / "vendor").resolve()
-            target = (folder / name).resolve()
-            types = {".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8"}
-            if target.parent != folder or target.suffix not in types or not target.is_file():
-                return self._json(404, {"error": "not found"})
-            return self._send(200, target.read_bytes(), types[target.suffix])
 
         def do_POST(self):
             if not self._authorised():
@@ -130,7 +115,7 @@ def make_handler(project, home, token, port, usage):
             if origin and urlparse(origin).netloc not in allowed_hosts:
                 return self._json(403, {"error": "cross-origin request refused"})
             route = urlparse(self.path).path
-            if route not in ("/task", "/layout", "/close", "/usage"):
+            if route not in ("/task", "/close", "/usage"):
                 return self._json(404, {"error": "not found"})
             if not (self.headers.get("Content-Type") or "").startswith("application/json"):
                 return self._json(415, {"error": "expected application/json"})
@@ -139,8 +124,6 @@ def make_handler(project, home, token, port, usage):
                 return self._json(413, {"error": "body missing or too large"})
             try:
                 raw = json.loads(self.rfile.read(length))
-                if route == "/layout":
-                    return self._json(200, layout.write(paths, raw))
                 if route == "/close":
                     return self._close()
                 if route == "/usage":
@@ -149,7 +132,7 @@ def make_handler(project, home, token, port, usage):
                 task = submit(paths, raw, current_graph(fresh=True)["skills"])
             except json.JSONDecodeError:
                 return self._json(400, {"error": "invalid JSON"})
-            except (TaskError, LayoutError) as e:
+            except TaskError as e:
                 return self._json(400, {"error": str(e)})
             return self._json(202, task)
 

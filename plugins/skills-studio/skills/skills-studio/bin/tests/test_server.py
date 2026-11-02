@@ -143,30 +143,6 @@ class ServerTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual([(t["id"], t["state"]) for t in listed["tasks"]], [(task["id"], "waiting")])
 
-    def test_layout_is_empty_before_any(self):
-        self.assertEqual(self.request("GET", "/layout"), (200, {"positions": {}}))
-
-    def test_layout_round_trips(self):
-        layout = {"positions": {"close-feature": [10, 20.5], "brain-tdd": [300, 40]}}
-        self.assertEqual(self.request("POST", "/layout", layout)[0], 200)
-        self.assertEqual(self.request("GET", "/layout"), (200, layout))
-
-    def test_malformed_layout_is_refused(self):
-        status, _ = self.request("POST", "/layout", {"positions": {"close-feature": ["x", 1]}})
-        self.assertEqual(status, 400)
-        self.assertEqual(self.request("GET", "/layout"), (200, {"positions": {}}))
-
-    def test_vendored_canvas_library_is_served_without_token(self):
-        status, body = self.request("GET", "/vendor/drawflow.min.js", token=False)
-        self.assertEqual(status, 200)
-        self.assertIn(b"Drawflow", body)
-
-    def test_vendored_library_still_needs_a_local_host(self):
-        self.assertEqual(self.request("GET", "/vendor/drawflow.min.js", host="evil.example:80")[0], 403)
-
-    def test_vendor_files_outside_js_and_css_are_not_served(self):
-        self.assertEqual(self.request("GET", "/vendor/drawflow.LICENSE")[0], 404)
-
     def test_analysis_is_empty_before_any(self):
         self.assertEqual(self.request("GET", "/analysis"), (200, {"suggestions": []}))
 

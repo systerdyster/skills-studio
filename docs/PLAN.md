@@ -17,8 +17,7 @@ plugins/skills-studio/
   skills/skills-studio/
     SKILL.md                           /skills-studio: start, watch, run tasks
     server.py                          127.0.0.1 + token, serves the page and the JSON API
-    studio.html                        the page
-    vendor/                            canvas library, pinned, no CDN
+    studio.html                        the page, no libraries
     bin/studio.py                      skills-cli entry: prints JSON
     bin/sx/                            scan · frontmatter · wires · checks · tasks · state
     bin/tests/                         unittest, stdlib only
@@ -27,9 +26,8 @@ plugins/skills-studio/
 - Python standard library only, as in the factory. Tests: `python3 -m unittest discover` in `bin/`.
 - Studio state lives in `.skills-studio/` in the project, git-ignored: `inbox/`, `done/`,
   `analysis/`, `lease.json`.
-- Canvas library: **Drawflow** (MIT, vanilla JS, one JS and one CSS file, no build step, Node-RED-like
-  nodes and wires). Vendored at a pinned version. If it falls short in task 6, LiteGraph is the
-  fallback; anything needing a bundler is ruled out.
+- Canvas library: **Drawflow** at first (task 6). Replaced by plain-HTML nested cards on 2026-11-02 —
+  see DESIGN.md, *Views*; the library and the layout it needed are gone.
 
 ## Tasks
 
