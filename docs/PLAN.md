@@ -47,7 +47,7 @@ use: scalars, quoted strings, lists, one nested map (`metadata:`). Anything it c
 parse error on that skill, not a crash.
 **Done:** tests on fixture skills cover a clean skill, missing frontmatter, broken frontmatter,
 quoted description with colons, nested `metadata`, a symlinked folder whose name differs from the
-skill's `name`. Run against this machine, it lists the ten user skills by their `name`, not their
+skill's `name`. Run against this machine, it lists the nine user skills by their `name`, not their
 folder.
 
 ### 3. Wires
