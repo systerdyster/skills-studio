@@ -88,9 +88,14 @@ A user or plugin skill can be **copied into the project as a template**. The cop
 **The skill's text is the only source of truth.** Nothing about links is stored in frontmatter or in
 studio state: what a parent runs is what its body says, so a second record would only drift from it.
 
-- A **wire** A → B is drawn wherever B's name appears as a whole word in A's body. Every mention
-  counts, including awkward ones ("unlike `brain-code-review`…"); a surprising wire is a prompt to
-  fix the text, not something to hide.
+- A **wire** A → B is drawn wherever A's body names B **by the name Claude knows it by**. Every
+  such mention counts, including awkward ones ("unlike `brain-code-review`…"); a surprising wire is
+  a prompt to fix the text, not something to hide. What counts as naming B:
+  - a plugin skill: its qualified name, `atlassian:triage-issue`; a synced skill:
+    `anthropic-skills:docs`. "Write some docs" is just words. Skills of one plugin may also name
+    each other by their bare name;
+  - a project or user skill: its name as a whole word (`brain-grill-me`); a one-word name
+    (`commit`, `tdd`) only in backticks or as `/commit`, since as a plain word it is just a word.
 - A wire to a name that is not in scope is drawn **broken** (red).
 - **Order and conditions** live in the parent's text. The studio does not model them; it may number
   wires by the position of the first mention.

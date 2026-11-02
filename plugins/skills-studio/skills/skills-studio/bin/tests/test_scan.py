@@ -100,6 +100,7 @@ class ScanTest(unittest.TestCase):
         found = self.run_scan()
         self.assertEqual(found["helper"]["source"], "plugin")
         self.assertEqual(found["helper"]["plugin"], "mine")
+        self.assertEqual(found["helper"]["id"], "mine:helper")
         self.assertNotIn("elsewhere", found)
 
     def test_project_scoped_plugin_counts_in_its_own_project(self):

@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from sx.frontmatter import FrontmatterError, parse
+from sx.wires import skill_id
 
 CHARS_PER_TOKEN = 4
 
@@ -71,6 +72,7 @@ def _describe(folder, source, plugin):
     }
     if plugin:
         record["plugin"] = plugin
+    record["id"] = skill_id(record)
     return record
 
 
