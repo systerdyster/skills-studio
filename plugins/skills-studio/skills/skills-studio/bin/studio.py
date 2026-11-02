@@ -3,6 +3,8 @@
 
 import argparse
 import json
+import os
+import signal
 import subprocess
 import sys
 import time
@@ -39,6 +41,7 @@ def build_parser():
     check.add_argument("--text", action="store_true", help="one line per finding, for reading")
 
     commands.add_parser("open", parents=[common], help="start the studio for this project if it is not running; print its URL")
+    commands.add_parser("stop", parents=[common], help="stop this project's studio server")
 
     held = commands.add_parser("lease", parents=[common], help="one studio session per project")
     held.add_argument("action", choices=["take", "renew", "release"])
@@ -125,6 +128,14 @@ def _open(args, project, home, paths):
     return _fail(f"the studio did not start; see {paths.root / 'server.log'}")
 
 
+def _stop(args, project, home, paths):
+    record = running(paths)
+    if not record:
+        return _print({"stopped": False})
+    os.kill(record["pid"], signal.SIGTERM)
+    return _print({"stopped": True, "pid": record["pid"]})
+
+
 def _lease(args, project, home, paths):
     if args.action == "release":
         lease.release(paths, args.holder)
@@ -191,7 +202,7 @@ def _copy(args, project, home, paths):
 
 
 COMMANDS = {
-    "scan": _scan, "graph": _graph, "check": _check, "open": _open, "lease": _lease,
+    "scan": _scan, "graph": _graph, "check": _check, "open": _open, "stop": _stop, "lease": _lease,
     "watch": _watch, "tasks": _tasks, "task": _task, "copy": _copy,
 }
 

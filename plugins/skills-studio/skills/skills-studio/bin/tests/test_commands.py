@@ -75,6 +75,9 @@ class CommandTest(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("no task", reply["error"])
 
+    def test_stop_without_a_running_studio_says_so(self):
+        self.assertEqual(self.run_cli("stop"), (0, {"stopped": False}))
+
     def test_copy_makes_the_project_skill(self):
         code, made = self.run_cli("copy", "brain-tdd", "tdd-team")
         self.assertEqual(code, 0)

@@ -30,10 +30,16 @@ class ServerTest(unittest.TestCase):
         write_skill(skills, "git-finish", description="Merge the branch and remove it once the case is approved.")
         write_skill(self.home / ".claude" / "skills", "brain-tdd", description="Drive a change test-first, red green blue.")
         self.httpd, self.token, self.port = server.serve(self.project, self.home)
-        threading.Thread(target=self.httpd.serve_forever, kwargs={"poll_interval": 0.02}, daemon=True).start()
+        self.httpd_stopped = threading.Event()
+
+        def serve():
+            self.httpd.serve_forever(poll_interval=0.02)
+            self.httpd_stopped.set()
+        threading.Thread(target=serve, daemon=True).start()
 
     def tearDown(self):
-        self.httpd.shutdown()
+        if not self.httpd_stopped.is_set():
+            self.httpd.shutdown()
         self.httpd.server_close()
         self.tmp.cleanup()
 
@@ -99,6 +105,18 @@ class ServerTest(unittest.TestCase):
     def test_cross_origin_post_is_refused(self):
         status, _ = self.request("POST", "/task", {"kind": "analyse"}, origin="http://evil.example")
         self.assertEqual(status, 403)
+        self.assertEqual(self.inbox(), [])
+
+    def test_close_tells_the_session_and_stops_the_server(self):
+        status, task = self.request("POST", "/close", {})
+        self.assertEqual(status, 202)
+        self.assertEqual(task["kind"], "close")
+        self.assertEqual([p.stem for p in self.inbox()], [task["id"]])
+        self.httpd_stopped.wait(2)
+        self.assertTrue(self.httpd_stopped.is_set())
+
+    def test_close_needs_the_token(self):
+        self.assertEqual(self.request("POST", "/close", {}, token=False)[0], 403)
         self.assertEqual(self.inbox(), [])
 
     def test_tasks_in_flight_are_listed(self):

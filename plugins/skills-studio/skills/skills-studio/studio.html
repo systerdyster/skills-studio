@@ -99,6 +99,10 @@ main.no-panel #panel { display: none; }
 #panel a.wire { color: var(--accent); cursor: pointer; text-decoration: none; }
 #panel a.wire.broken { color: var(--error); }
 
+main.closed { display: grid; place-items: center; text-align: center; grid-template-columns: 1fr; padding: 24px; }
+main.closed h1 { font-size: 20px; margin: 0 0 8px; }
+main.closed .sub { color: var(--muted); }
+
 #toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg);
   padding: 8px 14px; border-radius: 8px; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: 90vw; }
 #toast.shown { opacity: 1; }
@@ -118,6 +122,7 @@ main.no-panel #panel { display: none; }
   <button id="reset-layout" title="Forget where nodes were placed and lay them out again">Reset layout</button>
   <button id="new-skill">New skill</button>
   <button id="analyse" class="primary">Analyse</button>
+  <button id="close-studio" title="Stop the studio and let Claude stop watching for tasks">Close studio</button>
 </header>
 <main class="no-panel" id="main">
   <aside id="palette">
@@ -515,7 +520,23 @@ $("reset-layout").addEventListener("click", async () => {
   drawCanvas();
 });
 
-$("analyse").addEventListener("click",() => sendTask({ kind: "analyse" }, "analyse this project's skills"));
+$("analyse").addEventListener("click", () => sendTask({ kind: "analyse" }, "analyse this project's skills"));
+
+$("close-studio").addEventListener("click", async () => {
+  const waiting = state.tasks.length;
+  const warning = waiting ? `\n\n${waiting} task${waiting === 1 ? "" : "s"} not done yet will stay in the inbox for next time.` : "";
+  if (!confirm(`Close the studio? Claude stops watching for tasks and the server stops.${warning}`)) return;
+  try {
+    await api("/close", {});
+  } catch (error) {
+    return toast(`Not closed: ${error.message}`);
+  }
+  clearInterval(state.poller);
+  document.body.replaceChildren(el("main", { class: "closed" },
+    el("div", {}, el("h1", {}, "Skills Studio is closed"),
+      el("p", {}, "Claude has been told and stops watching for tasks. You can close this tab."),
+      el("p", { class: "sub" }, "Run /skills-studio again to reopen it."))));
+});
 
 // ---- load and keep current -----------------------------------------------------------------
 
@@ -555,7 +576,7 @@ async function refresh(force = false) {
     state.positions = (await api("/layout")).positions || {};
   } catch { state.positions = {}; }
   await refresh(true);
-  setInterval(() => document.visibilityState === "visible" && refresh(), POLL_MS);
+  state.poller = setInterval(() => document.visibilityState === "visible" && refresh(), POLL_MS);
 })();
 </script>
 </body>

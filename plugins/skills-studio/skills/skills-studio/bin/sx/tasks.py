@@ -23,6 +23,7 @@ KINDS = {
     "new": {"name": "free", "description": "text", "intent": "text"},
     "copy": {"source": "any", "name": "free"},
     "analyse": {},
+    "close": {},
 }
 
 

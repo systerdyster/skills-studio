@@ -127,7 +127,7 @@ def make_handler(project, home, token, port):
             if origin and urlparse(origin).netloc not in allowed_hosts:
                 return self._json(403, {"error": "cross-origin request refused"})
             route = urlparse(self.path).path
-            if route not in ("/task", "/layout"):
+            if route not in ("/task", "/layout", "/close"):
                 return self._json(404, {"error": "not found"})
             if not (self.headers.get("Content-Type") or "").startswith("application/json"):
                 return self._json(415, {"error": "expected application/json"})
@@ -138,12 +138,22 @@ def make_handler(project, home, token, port):
                 raw = json.loads(self.rfile.read(length))
                 if route == "/layout":
                     return self._json(200, layout.write(paths, raw))
+                if route == "/close":
+                    return self._close()
                 task = submit(paths, raw, current_graph(fresh=True)["skills"])
             except json.JSONDecodeError:
                 return self._json(400, {"error": "invalid JSON"})
             except (TaskError, LayoutError) as e:
                 return self._json(400, {"error": str(e)})
             return self._json(202, task)
+
+        def _close(self):
+            """Closing from the page: a close task tells the session to stop watching and let go of
+            the lease, then the server stops itself (from another thread: shutdown waits for the
+            serving loop, which is running this request)."""
+            task = submit(paths, {"kind": "close"}, [])
+            self._json(202, task)
+            threading.Thread(target=self.server.shutdown, daemon=True).start()
 
         do_PUT = do_DELETE = do_PATCH = lambda self: self._json(405, {"error": "method not allowed"})
 

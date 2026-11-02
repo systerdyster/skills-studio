@@ -59,6 +59,7 @@ backticks (`` `commit` ``). Never add frontmatter fields to record links.
 | `new` | `name`, `description`, `intent` | Write `.claude/skills/<name>/SKILL.md` with the developer, using a skill-creator skill when one is available. | Yes |
 | `copy` | `source`, `name` | `S copy <source> <name>`, then `S check --text` and show the findings for the copy — personal content above all, since it lands in a shared repository. | No |
 | `analyse` | — | Not built yet: say so and file it `declined`. | — |
+| `close` | — | The developer pressed *Close studio*; the server has already stopped itself. Do **Stop** below. | No |
 
 After any task that changed skills, run `S check --text` and mention new findings for the skills you
 touched. Never commit: the developer decides what to keep.
@@ -68,5 +69,12 @@ it, or the task's record in `.skills-studio/done/` holds it under `before`.
 
 ## Stop
 
-When the developer is done: stop the Monitor, run `S lease release --holder <name>`, and say the server
-still runs at its URL until they stop it (`kill` the pid in `.skills-studio/server.json`).
+The studio stops when the developer presses *Close studio* on the page (a `close` task arrives), or
+says in the chat that they are done. Either way:
+
+1. Finish the task you are in the middle of, if any. Do not start tasks that are still waiting: they
+   stay in the inbox for the next time the studio opens. Say how many, if any.
+2. `S task done <close id> --outcome done --note "Closed from the page."` when a `close` task started it.
+3. Stop the Monitor, then `S stop` (the server; a no-op when the page already stopped it) and
+   `S lease release --holder <name>`.
+4. Say in one line that the studio is closed and that `/skills-studio` opens it again.
