@@ -28,7 +28,7 @@ def write(paths, raw):
                 and all(isinstance(v, numbers.Real) and not isinstance(v, bool) for v in value)):
             raise LayoutError(f"position of {key!r} must be [x, y]")
     layout = {"positions": positions}
-    paths.root.mkdir(parents=True, exist_ok=True)
+    paths.ensure()
     # A temporary file of its own per write: the page may save twice at once.
     handle, partial = tempfile.mkstemp(dir=paths.root, prefix=".layout-", suffix=".partial")
     with os.fdopen(handle, "w") as out:

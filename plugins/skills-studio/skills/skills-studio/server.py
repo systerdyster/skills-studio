@@ -183,7 +183,7 @@ def run(project, home, port=0):
         return existing
     httpd, token, port = serve(project, home, port)
     url = f"http://127.0.0.1:{port}/?token={token}"
-    paths.root.mkdir(parents=True, exist_ok=True)
+    paths.ensure()
     paths.server.write_text(json.dumps({
         "url": url, "port": port, "pid": os.getpid(),
         "started_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),

@@ -29,7 +29,7 @@ class ConcurrentWriteTest(unittest.TestCase):
                 thread.join()
             self.assertEqual(errors, [])
             self.assertIn(layout.read(paths)["positions"]["a"][0], range(6))
-            self.assertEqual(sorted(p.name for p in paths.root.iterdir()), ["layout.json"])
+            self.assertEqual(sorted(p.name for p in paths.root.iterdir()), [".gitignore", "layout.json"])
 
 
 if __name__ == "__main__":

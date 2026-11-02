@@ -67,7 +67,8 @@ def submit(paths, raw, skills):
     now = datetime.now(timezone.utc)
     task["id"] = f"{now.strftime('%Y%m%dT%H%M%S%fZ')}-{task['kind']}-{secrets.token_hex(3)}"
     task["created_at"] = now.isoformat(timespec="seconds")
-    paths.inbox.mkdir(parents=True, exist_ok=True)
+    paths.ensure()
+    paths.inbox.mkdir(exist_ok=True)
     target = paths.inbox / f"{task['id']}.json"
     partial = target.with_suffix(".partial")
     partial.write_text(json.dumps(task, ensure_ascii=False, indent=2))

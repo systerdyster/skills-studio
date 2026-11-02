@@ -112,7 +112,7 @@ def _open(args, project, home, paths):
     existing = running(paths)
     if existing:
         return _print({"url": existing["url"], "started": False})
-    paths.root.mkdir(parents=True, exist_ok=True)
+    paths.ensure()
     with open(paths.root / "server.log", "a") as log:
         subprocess.Popen([sys.executable, str(SERVER), "--project", str(project), "--home", str(home)],
                          stdout=log, stderr=log, stdin=subprocess.DEVNULL, start_new_session=True)

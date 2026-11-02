@@ -53,7 +53,7 @@ def release(paths, holder):
 
 
 def _write(paths, held):
-    paths.root.mkdir(parents=True, exist_ok=True)
+    paths.ensure()
     handle, partial = tempfile.mkstemp(dir=paths.root, prefix=".lease-", suffix=".partial")
     with os.fdopen(handle, "w") as out:
         out.write(json.dumps(held))

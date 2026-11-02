@@ -18,6 +18,15 @@ class StudioPaths:
         self.lease = self.root / "lease.json"
         self.layout = self.root / "layout.json"
 
+    def ensure(self):
+        """Create the studio's folder, ignored by git from inside, so the project's .gitignore stays
+        untouched."""
+        self.root.mkdir(parents=True, exist_ok=True)
+        ignore = self.root / ".gitignore"
+        if not ignore.exists():
+            ignore.write_text("*\n")
+        return self.root
+
 
 def running(paths):
     """The studio already serving this project, from server.json: its process is alive and its port
