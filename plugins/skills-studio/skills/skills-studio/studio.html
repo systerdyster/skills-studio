@@ -46,6 +46,7 @@ aside { background: var(--surface); overflow: auto; min-height: 0; }
 main.no-panel #panel { display: none; }
 
 .tabs { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0; }
+header .tabs { margin: 0; }
 .tabs button { padding: 2px 8px; font-size: 12px; }
 .tabs button[aria-pressed="true"] { background: var(--surface-2); border-color: var(--text); }
 #palette ul { list-style: none; margin: 0; padding: 0; }
@@ -119,6 +120,7 @@ main.closed .sub { color: var(--muted); }
   <h1>Skills Studio</h1>
   <span class="project" id="project"></span>
   <span class="counts" id="counts"></span>
+  <div class="tabs flows" id="flows" role="group" aria-label="Show one flow"></div>
   <button id="reset-layout" title="Forget where nodes were placed and lay them out again">Reset layout</button>
   <button id="new-skill">New skill</button>
   <button id="analyse" class="primary">Analyse</button>
@@ -145,7 +147,7 @@ const TOKEN = new URLSearchParams(location.search).get("token") || "";
 const SOURCES = ["project", "user", "synced", "plugin"];
 const POLL_MS = 4000;
 
-const state = { graph: null, tasks: [], signature: "", positions: {}, tab: "project", selected: null, loading: false };
+const state = { graph: null, tasks: [], signature: "", positions: {}, tab: "project", flow: null, selected: null, loading: false };
 const nodeOf = new Map();   // skill id -> drawflow node id
 const skillOf = new Map();  // drawflow node id -> skill id
 const $ = (id) => document.getElementById(id);
@@ -210,8 +212,18 @@ function signature(graph) {
   return JSON.stringify([graph.skills.map((s) => [s.id, s.modified]), graph.wires.map((w) => [w.from, w.to, w.broken])]);
 }
 
-// What the canvas shows: the project's skills, what they call, and anything dragged onto it.
+const flowName = (flow) => flow.entry.join(" / ");
+const currentFlow = () => state.graph.flows.find((flow) => flowName(flow) === state.flow);
+
+// What the canvas shows: one flow with its broken calls, or else the project's skills, what they
+// call, and anything dragged onto it.
 function canvasIds() {
+  const flow = currentFlow();
+  if (flow) {
+    const ids = new Set(flow.skills.filter(skillById));
+    for (const id of flow.skills) for (const wire of wiresFrom(id)) if (wire.broken) ids.add(`missing:${wire.to}`);
+    return [...ids];
+  }
   const ids = new Set(state.graph.skills.filter((s) => s.source === "project").map((s) => s.id));
   for (const id of [...ids]) for (const wire of wiresFrom(id)) ids.add(wire.broken ? `missing:${wire.to}` : wire.to);
   for (const id of Object.keys(state.positions)) if (skillById(id)) ids.add(id);
@@ -298,6 +310,26 @@ function drawCanvas() {
   state.loading = false;
 }
 
+// Zooms and pans so every node on the canvas fits, never past 100%. Drawflow scales around the
+// canvas centre, so the pan is worked out from there.
+function fitView(padding = 40) {
+  const boxes = [...nodeOf.values()].map((node) => {
+    const element = document.getElementById(`node-${node}`);
+    const { pos_x: x, pos_y: y } = editor.getNodeFromId(node);
+    return [x, y, x + element.offsetWidth, y + element.offsetHeight];
+  });
+  if (!boxes.length) return;
+  const [left, top] = [Math.min(...boxes.map((b) => b[0])), Math.min(...boxes.map((b) => b[1]))];
+  const [right, bottom] = [Math.max(...boxes.map((b) => b[2])), Math.max(...boxes.map((b) => b[3]))];
+  const { clientWidth: width, clientHeight: height } = editor.precanvas;
+  const zoom = Math.max(editor.zoom_min, Math.min(1, (width - 2 * padding) / (right - left), (height - 2 * padding) / (bottom - top)));
+  const [cx, cy] = [width / 2, height / 2];
+  editor.zoom = editor.zoom_last_value = zoom;
+  editor.canvas_x = (width - (right - left) * zoom) / 2 - cx - (left - cx) * zoom;
+  editor.canvas_y = (height - (bottom - top) * zoom) / 2 - cy - (top - cy) * zoom;
+  editor.precanvas.style.transform = `translate(${editor.canvas_x}px, ${editor.canvas_y}px) scale(${zoom})`;
+}
+
 function connectionPath(out, into) {
   return document.querySelector(`.connection.node_out_node-${out}.node_in_node-${into}`);
 }
@@ -341,8 +373,9 @@ editor.on("nodeMoved", () => {
   saveTimer = setTimeout(saveLayout, 400);
 });
 
+// Starts from the saved places, so nodes a flow hides keep theirs.
 function saveLayout(added = {}) {
-  const positions = {};
+  const positions = Object.fromEntries(Object.entries(state.positions).filter(([id]) => skillById(id)));
   for (const [id, node] of nodeOf) {
     if (id.startsWith("missing:")) continue;
     const data = editor.getNodeFromId(node);
@@ -410,6 +443,8 @@ $("drawflow").addEventListener("drop", (event) => {
   const x = event.clientX * scale - box.x * scale;
   const y = event.clientY * scale - box.y * scale;
   saveLayout({ [id]: [Math.round(x), Math.round(y)] });
+  state.flow = null;
+  drawFlows();
   drawCanvas();
 });
 
@@ -553,6 +588,15 @@ function drawHeader() {
     ...["error", "warning", "info"].filter((level) => count(level)).map((level) => el("span", { class: `badge ${level}` }, `${count(level)} ${level}`)));
 }
 
+function drawFlows() {
+  const pick = (name) => () => { state.flow = name; drawFlows(); drawCanvas(); fitView(); };
+  const button = (name, label, title) =>
+    el("button", { "aria-pressed": String(state.flow === name), title, onclick: pick(name) }, label);
+  $("flows").replaceChildren(button(null, "All", "Every project skill, and anything dragged onto the canvas"),
+    ...state.graph.flows.map((flow) => button(flowName(flow), `${flowName(flow)} ${flow.skills.length}`,
+      `Starts at ${flowName(flow)}: ${flow.skills.join(", ")}`)));
+}
+
 async function refresh(force = false) {
   let graph, inFlight;
   try {
@@ -565,7 +609,9 @@ async function refresh(force = false) {
   state.graph = graph;
   state.tasks = inFlight.tasks;
   state.signature = next;
+  if (!currentFlow()) state.flow = null;
   drawHeader();
+  drawFlows();
   drawPalette();
   drawCanvas();
   if (state.selected) openSkill(state.selected);

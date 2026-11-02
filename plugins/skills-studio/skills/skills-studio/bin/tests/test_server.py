@@ -84,6 +84,7 @@ class ServerTest(unittest.TestCase):
         self.assertIn({"from": "close-feature", "to": "git-finish"},
                       [{"from": w["from"], "to": w["to"]} for w in graph["wires"]])
         self.assertIn("wire-broken", {f["check"] for f in graph["findings"]})
+        self.assertIn({"entry": ["close-feature"], "skills": ["close-feature", "git-finish"]}, graph["flows"])
         self.assertNotIn("body", graph["skills"][0])
 
     def test_one_skill_with_its_body(self):
