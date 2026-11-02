@@ -6,11 +6,10 @@ import json
 import sys
 from pathlib import Path
 
-from sx.checks import checks
+from sx import graph
+from sx.graph import LEVELS
 from sx.scan import scan
 from sx.wires import wires
-
-LEVELS = ("error", "warning", "info")
 
 
 def build_parser():
@@ -38,9 +37,9 @@ def main(argv=None):
         parser.print_help()
         return 2
     project, home = Path(args.project).resolve(), Path(args.home).resolve()
-    skills = scan(project, home)
     if args.command == "check":
-        return _check(project, skills, args.text)
+        return _check(project, home, args.text)
+    skills = scan(project, home)
     out = {"project": str(project), "skills": skills}
     if args.command == "graph":
         out["wires"] = wires(skills)
@@ -48,10 +47,9 @@ def main(argv=None):
     return 0
 
 
-def _check(project, skills, as_text):
-    sources = {s["id"]: Path(s["path"]).read_text(encoding="utf-8", errors="replace") for s in skills}
-    findings = sorted(checks(skills, wires(skills), sources),
-                      key=lambda f: (LEVELS.index(f["level"]), f["skill"], f["check"]))
+def _check(project, home, as_text):
+    built = graph.build(project, home)
+    skills, findings = built["skills"], built["findings"]
     if not as_text:
         print(json.dumps({"project": str(project), "findings": findings}, ensure_ascii=False, indent=2))
         return 0
