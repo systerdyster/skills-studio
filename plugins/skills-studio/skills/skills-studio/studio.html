@@ -174,6 +174,9 @@ button.busy::before { content: ""; display: inline-block; width: 10px; height: 1
 .card.readonly { border-style: dashed; }
 .card.unused > .card-head { opacity: .55; }
 .card.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.card.placeholder { border-style: dotted; border-color: var(--accent); }
+.card.placeholder .card-head { cursor: default; }
+.card.placeholder .name { color: var(--accent); }
 .card-head { display: flex; gap: 6px; align-items: center; cursor: pointer; min-width: 0; }
 .card-head .name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .card-head .meta { color: var(--muted); font-size: 12px; white-space: nowrap; margin-left: auto; display: flex; gap: 6px; align-items: center; }
@@ -272,18 +275,23 @@ function el(tag, attrs = {}, ...children) {
 }
 
 let toastTimer;
-function toast(text) {
+function toast(text, ms = 3200) {
   const box = $("toast");
   box.textContent = text;
   box.classList.add("shown");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => box.classList.remove("shown"), 3200);
+  toastTimer = setTimeout(() => box.classList.remove("shown"), ms);
 }
 
+// Once a task is sent the work moves to the Claude session, so the dialog that asked for it closes
+// and the toast says where to follow it.
 async function sendTask(task, said) {
   try {
     await api("/task", task);
-    toast(`Sent to Claude: ${said}`);
+    state.editing = null;
+    state.selected = null;
+    if ($("panel").open) $("panel").close();
+    toast(`Sent to Claude: ${said}. Follow along in the terminal.`, 7000);
     refresh(true);
     return true;
   } catch (error) {
@@ -457,9 +465,19 @@ function proposalButton({ skill, text }) {
     onclick: () => sendTask({ kind: "change", skill, text }, `change ${skill}`) }, sent ? "Sent" : "Send to Claude");
 }
 
+// A skill asked for but not on disk yet — new or copied — stands as a placeholder until it is.
+function placeholderCards() {
+  const exists = (name) => state.graph.skills.some((s) => s.id === name || s.name === name);
+  return state.tasks.filter((t) => (t.kind === "new" || t.kind === "copy") && !exists(t.name)).map((task) =>
+    el("div", { class: "card placeholder", role: "status" },
+      el("div", { class: "card-head" }, el("span", { class: "name" }, task.name)),
+      el("div", { class: "summary" }, task.state !== "active" ? "Waiting for Claude to pick it up…"
+        : task.progress ? `Claude: ${task.progress}` : "Claude is writing it in the terminal…")));
+}
+
 function drawCards() {
   const shown = new Set();
-  const cards = topLevel().map((id) => card(id, [], shown));
+  const cards = [...placeholderCards(), ...topLevel().map((id) => card(id, [], shown))];
   $("cards").replaceChildren(...(cards.length ? cards : [el("div", { id: "empty" },
     el("p", {}, el("strong", {}, "This project has no skills of its own yet.")),
     el("p", {}, "Create one with ", el("em", {}, "New skill"), ", or open a skill in the palette and copy it into the project."))]));
@@ -764,7 +782,7 @@ function editPage(skill) {
   const cancel = el("button", { onclick: () => (!dirty() || confirm("Drop your edits?")) && stop() }, "Cancel");
   const save = el("button", { class: "primary", onclick: async () => {
     if (!dirty()) return stop();
-    if (await sendTask({ kind: "save", skill: skill.id, name: name.value, description: desc.value, body: body.value }, `save ${skill.id}`)) stop();
+    await sendTask({ kind: "save", skill: skill.id, name: name.value, description: desc.value, body: body.value }, `save ${skill.id}`);
   } }, "Save");
   const fields = Object.entries(skill.frontmatter || {}).filter(([key]) => !["name", "description"].includes(key));
   return {
